@@ -1,0 +1,6 @@
+streamlit
+boto3
+botocore
+duckduckgo_search
+requests
+bs4
