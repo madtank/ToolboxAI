@@ -1,5 +1,13 @@
-# bedrock-conversai-toolbox
-Welcome to bedrock-conversai-toolbox! This project utilizes Amazon Bedrock’s ConversAI API to build advanced conversational AI tools. Enhance chatbot development with integrated DuckDuckGo web search and an intuitive Streamlit interface. Perfect for developers aiming to create sophisticated AI-driven applications effortlessly.
+# Bedrock ConversAI Toolbox
+
+Bedrock ConversAI Toolbox is a Streamlit-based application that leverages AWS Bedrock and Claude AI to provide an interactive chat interface with tool-use capabilities.
+
+## Features
+
+- Interactive chat interface powered by AWS Bedrock and Claude AI
+- Dynamic tool use for web searches and web scraping
+- Real-time token usage tracking
+- Streamlit-based user interface for easy interaction
 
 ## Tool Use When Needed
 
@@ -7,56 +15,76 @@ To see `bedrock-conversai-toolbox` in action, check out this image from our demo
 
 ![Bedrock Tool Use](assets/bedrock_tool_use.png)
 
-## Setup and Installation
-To get started with the bedrock-conversai-toolbox, follow these steps:
+## Prerequisites
 
-1. **Install Dependencies**: Run `pip install -r requirements.txt` to install the necessary dependencies.
-2. **Set Up a Virtual Environment**:
-   - Create a virtual environment by running `python -m venv .env`.
-   - Activate the virtual environment:
-     - On Windows, use `.env\Scripts\activate`.
-     - On Unix or MacOS, use `source .env/bin/activate`.
-3. **Run `converse_tools.py` with Streamlit**: Execute `streamlit run converse_tools.py` to start the application.
+Before running the application, ensure you have the following:
 
-## About `converse_tools.py`
-The `converse_tools.py` module is a cornerstone of the bedrock-conversai-toolbox, offering a suite of functions designed to facilitate the development of conversational AI applications using Amazon Bedrock’s ConversAI API. This module enables developers to:
+- Python 3.7 or higher
+- AWS account with Bedrock access
+- AWS CLI configured with appropriate credentials
 
-- **Create a Bedrock client**: Establish a connection to Amazon Bedrock’s ConversAI API.
-- **Handle chat input**: Process user inputs for the conversational AI.
-- **Search DuckDuckGo**: Integrate real-time web search within chatbot conversations.
-- **Scrape webpages**: Extract content from webpages to use as context or responses.
-- **Process AI responses**: Manage the flow of conversation by processing AI-generated responses.
-- **Manage conversational AI streams**: Seamlessly handle the stream of messages in a conversation.
+## Installation
 
-### Integration of DuckDuckGo Web Search
-`converse_tools.py` integrates DuckDuckGo web search, allowing chatbots to retrieve current information from the web in real-time, enhancing the user experience by providing accurate and up-to-date responses.
+1. Clone the repository:
+   ```
+   git clone https://github.com/madtank/bedrock-conversai-toolbox.git
+   cd bedrock-conversai-toolbox
+   ```
 
-### Conversational AI Stream Management
-This module also simplifies the management of conversational AI streams, making it easier for developers to maintain the flow of conversation and ensure that chatbots respond appropriately to user inputs.
+2. Create a virtual environment (optional but recommended):
+   ```
+   python -m venv venv
+   source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+   ```
 
-### Enhanced Session Management for History and Chat Display
-The latest update introduces separate session management for history and chat display, utilizing `st.session_state.history` for storing all messages and `st.session_state.current_chat` for displaying the latest exchange. This approach allows messages to alternate between user and assistant, ensuring a clear and organized markdown display. After each user and assistant message pair, `st.session_state.current_chat` is cleared, maintaining only the latest exchange visible, while `st.session_state.history` retains all messages. This feature enhances the readability and coherence of chat interactions, providing a more structured conversational experience.
+3. Install the required packages:
+   ```
+   pip install -r requirements.txt
+   ```
 
-### Usage Example
-Below is a simple usage example demonstrating how to utilize key functions within `converse_tools.py`:
+## Configuration
 
-```python
-from converse_tools import create_bedrock_client, handle_chat_input, search_duckduckgo, scrape_webpage, process_ai_response
+1. Ensure your AWS CLI is configured with the correct credentials and region.
 
-# Create a Bedrock client
-bedrock_client = create_bedrock_client()
+2. If necessary, update the `region_name` in the `create_bedrock_client()` function in `main.py` to match your AWS Bedrock endpoint region.
 
-# Example of handling chat input
-handle_chat_input("Hello, how can I assist you today?")
+## Running the Application
 
-# Example of searching DuckDuckGo
-search_results = search_duckduckgo("Latest news on AI")
+To run the Bedrock ConversAI Toolbox:
 
-# Example of scraping a webpage
-webpage_content = scrape_webpage("https://example.com")
-
-# Example of processing an AI response
-process_ai_response(bedrock_client, "What is the weather like today?")
+```
+streamlit run main.py
 ```
 
-This example illustrates the ease with which developers can integrate these functions into their projects, leveraging the power of Amazon Bedrock’s ConversAI API to create dynamic and responsive chatbots.
+This will start the Streamlit server and open the application in your default web browser.
+
+## File Structure
+
+The application currently consists of two main files:
+
+- `main.py`: Contains the Streamlit UI, main application logic, and conversation handling.
+- `tools.py`: Contains tool-related functions (web search and web scraping) and configurations.
+
+## Usage
+
+1. Once the application is running, you'll see a chat interface.
+2. Type your message in the input box and press Enter.
+3. The AI will respond, and if necessary, it will use tools to gather additional information.
+4. You can start a new chat at any time by clicking the "New Chat" button in the sidebar.
+5. Token usage information is displayed in the sidebar after each AI response.
+
+## Future Improvements
+
+- Implement user authentication
+- Add more tools and expand tool capabilities
+- Create separate files for Bedrock client handling and conversation processing
+- Implement error handling and logging
+- Add unit tests for key functions
+
+## Contributing
+
+Contributions to Bedrock ConversAI Toolbox are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

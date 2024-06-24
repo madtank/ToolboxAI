@@ -2,10 +2,8 @@ import boto3
 import json
 import streamlit as st
 from datetime import date
-from duckduckgo_search import DDGS
-import requests
-from bs4 import BeautifulSoup
 from botocore.exceptions import ClientError
+from tools import process_tool_call, toolConfig
 
 def create_bedrock_client():
     return boto3.client(service_name='bedrock-runtime', region_name='us-east-1')
@@ -26,19 +24,6 @@ def stream_conversation(stream):
         for event in stream:
             yield event
 
-def search_duckduckgo(query, region='wt-wt', safesearch='off', max_results=5):
-    """Search DuckDuckGo (ddg) for the given query and return the results. This is for websearch, we need this for current information."""
-    ddg = DDGS()
-    results = ddg.text(keywords=query, region=region, safesearch=safesearch, max_results=max_results)
-    return results
-
-def scrape_webpage(url):
-    """Scrape a webpage and return its content as text."""
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, 'html.parser')
-    text = soup.get_text(separator='\n', strip=True)
-    return text
-
 def handle_chat_input(prompt):
     user_message = {"role": "user", "content": [{"text": prompt}]}
     st.session_state.history.append(user_message)
@@ -55,6 +40,10 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
             tool_id = None
             is_tool_use = False
             assistant_message = {"role": "assistant", "content": []}
+            input_tokens = 0
+            output_tokens = 0
+            total_tokens = 0
+            token_usage_placeholder = st.sidebar.empty()
 
             try:
                 stream = get_stream(
@@ -87,7 +76,7 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
 
                     elif 'messageStop' in event:
                         if event['messageStop'].get('stopReason') == 'tool_use':
-                            # Add text response and tool use to assistant's message
+                            # Process tool use
                             if full_response:
                                 assistant_message["content"].append({"text": full_response})
                             assistant_message["content"].append({
@@ -100,7 +89,6 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                             message_placeholder.markdown(full_response)
                             tool_input_placeholder.markdown(f"Tool input: {full_tool_input}")
 
-                            # Process tool use
                             tool_results = process_tool_call(tool_name, json.loads(full_tool_input))
                             st.markdown(f"**Tool Results:** {tool_results}")
 
@@ -129,6 +117,7 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                             full_tool_input = ""
                             full_response = ""  # Reset full_response for potential continued assistant response
                             assistant_message = {"role": "assistant", "content": []}  # Reset for potential next response
+
                         else:
                             # Final message stop
                             if full_response:
@@ -137,27 +126,28 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                             messages.append(assistant_message)
                             # Update display messages
                             st.session_state.display_messages.append({"role": "assistant", "content": full_response})
-                            return  # Exit the function when the assistant's turn is complete
 
-                    # Only works with tool use, because of the return above
-                    # elif 'metadata' in event:
-                    #     metadata = event['metadata']
-                    #     if 'usage' in metadata:
-                    #         usage = metadata['usage']
-                    #         inputTokens = usage.get('inputTokens', 0)
-                    #         outputTokens = usage.get('outputTokens', 0)
-                    #         totalTokens = usage.get('totalTokens', 0)
+                    elif 'metadata' in event:
+                        metadata = event['metadata']
+                        if 'usage' in metadata:
+                            usage = metadata['usage']
+                            input_tokens = usage.get('inputTokens', 0)
+                            output_tokens = usage.get('outputTokens', 0)
+                            total_tokens = usage.get('totalTokens', 0)
 
-                    #         # Display the usage information in the sidebar
-                    #         st.sidebar.markdown(f"**Usage Information:**\n- Input Tokens: {inputTokens}\n- Output Tokens: {outputTokens}\n- Total Tokens: {totalTokens}")
+                            # Update the token usage in the sidebar
+                            token_usage_placeholder.markdown(f"**Usage Information:**\n- Input Tokens: {input_tokens}\n- Output Tokens: {output_tokens}\n- Total Tokens: {total_tokens}")
+
+                # Check whose turn it is next
+                if messages[-1]["role"] == "assistant":
+                    # If it's the user's turn, we return to main
+                    return
+                # If it's the assistant's turn, the loop will continue
 
             except ClientError as err:
                 message = err.response['Error']['Message']
                 st.error(f"A client error occurred: {message}")
                 return  # Exit the function on error
-
-        # If we've reached this point, it means we've processed a tool use and need to continue the conversation
-        # The loop will continue, and we'll get the next assistant response
 
 def handle_chat_output(delta, message_placeholder, full_response, is_final=True):
     text_chunk = delta['text']
@@ -178,80 +168,10 @@ def handle_tool_use(delta, tool_input_placeholder, full_tool_input, is_final=Tru
             tool_input_placeholder.markdown(full_tool_input + "▌")
     return full_tool_input
 
-def process_tool_call(tool_name, tool_input):
-    if tool_name == "search":
-        return search_duckduckgo(tool_input["query"])
-    elif tool_name == "webscrape":
-        return scrape_webpage(tool_input["url"])
-
-def process_tool_use(tool_name, full_tool_input, tool_id):
-    full_tool_input_dict = json.loads(full_tool_input)
-    tool_result = process_tool_call(tool_name, full_tool_input_dict)
-    tool_result_message = {
-        "role": "tool",
-        "content": [
-            {
-                "toolResult": {
-                    "toolUseId": tool_id,
-                    "name": tool_name,
-                    "content": [
-                        {"text": str(tool_result)}
-                    ]
-                }
-            }
-        ]
-    }
-    return tool_result, tool_result_message
-
-toolConfig = {
-    'tools': [
-        {
-            'toolSpec': {
-                'name': 'search',
-                'description': 'This tool allows you to search the web using DuckDuckGo. You can use it to find information, articles, websites, and more. Simply provide a query, and the tool will return a list of search results.',
-                'inputSchema': {
-                    'json': {
-                        'type': 'object',
-                        'properties': {
-                            'query': {
-                                'type': 'string',
-                                'description': 'The search query. This can be any string of text that you want to search for.'
-                            }
-                        },
-                        'required': ['query']
-                    }
-                }
-            }
-        },
-        {
-            'toolSpec': {
-                'name': 'webscrape',
-                'description': 'This tool allows you to scrape the content of a webpage. You can use it to extract the text from a webpage, which can then be used as context for further actions. Simply provide a URL, and the tool will return the text content of the webpage.',
-                'inputSchema': {
-                    'json': {
-                        'type': 'object',
-                        'properties': {
-                            'url': {
-                                'type': 'string',
-                                'description': 'The URL of the webpage to scrape. This should be a fully qualified URL, including the http:// or https:// prefix.'
-                            }
-                        },
-                        'required': ['url']
-                    }
-                }
-            }
-        }
-    ],
-    'toolChoice': {
-        'auto': {}
-    }
-}
-
 def new_chat():
     st.session_state.messages = []
     st.session_state.history = []
     st.session_state.display_messages = []
-
 
 def main():
     st.title("Converse API - Tools")
