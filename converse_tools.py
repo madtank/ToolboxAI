@@ -28,7 +28,8 @@ def stream_conversation(stream):
 
 def handle_chat_input(prompt):
     st.chat_message("user").markdown(prompt)
-    st.session_state.messages.append({"role": "user", "content": [{"text": prompt}]})
+    st.session_state.history.append({"role": "user", "content": [{"text": prompt}]})
+    st.session_state.current_chat.append({"role": "user", "content": [{"text": prompt}]})
 
 def search_duckduckgo(query, region='wt-wt', safesearch='off', max_results=5):
     """Search DuckDuckGo (ddg) for the given query and return the results. This is for websearch, we need this for current information."""
@@ -239,6 +240,8 @@ def new_chat() -> None:
     Reset the chat session and initialize a new conversation chain.
     """
     st.session_state["messages"] = []
+    st.session_state["history"] = []
+    st.session_state["current_chat"] = []
 
 def main():
     st.title("Amazon Bedrock Chatbot with Streaming")
@@ -253,6 +256,10 @@ def main():
     st.sidebar.button("New Chat", on_click=new_chat, type="primary")
     if "messages" not in st.session_state:
         st.session_state.messages = []
+    if "history" not in st.session_state:
+        st.session_state.history = []
+    if "current_chat" not in st.session_state:
+        st.session_state.current_chat = []
 
     bedrock_client = create_bedrock_client()
     model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
@@ -260,18 +267,20 @@ def main():
     inference_config = {"temperature": 0.1}
     additional_model_fields = {"top_k": 200}
 
-    # Display all messages
-    for message in st.session_state.messages:
+    # Display all messages from current_chat
+    for message in st.session_state.current_chat:
         with st.chat_message(message["role"]):
             if 'text' in message["content"][0]:
                 st.markdown(message["content"][0]["text"])
             elif 'toolResult' in message["content"][0]:
                 tool_result = message["content"][0]["toolResult"]
                 st.markdown(f"Tool result: {tool_result}")
+    # Clear current_chat after displaying messages
+    st.session_state.current_chat = []
 
     if prompt := st.chat_input("Ask me anything!"):
         handle_chat_input(prompt)
-        process_ai_response(bedrock_client, model_id, st.session_state.messages, system_prompts, inference_config, additional_model_fields, toolConfig)
+        process_ai_response(bedrock_client, model_id, st.session_state.history, system_prompts, inference_config, additional_model_fields, toolConfig)
 
 if __name__ == "__main__":
     main()

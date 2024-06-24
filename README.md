@@ -28,6 +28,9 @@ The `converse_tools.py` module is a cornerstone of the bedrock-conversai-toolbox
 ### Conversational AI Stream Management
 This module also simplifies the management of conversational AI streams, making it easier for developers to maintain the flow of conversation and ensure that chatbots respond appropriately to user inputs.
 
+### Enhanced Session Management for History and Chat Display
+The latest update introduces separate session management for history and chat display, utilizing `st.session_state.history` for storing all messages and `st.session_state.current_chat` for displaying the latest exchange. This approach allows messages to alternate between user and assistant, ensuring a clear and organized markdown display. After each user and assistant message pair, `st.session_state.current_chat` is cleared, maintaining only the latest exchange visible, while `st.session_state.history` retains all messages. This feature enhances the readability and coherence of chat interactions, providing a more structured conversational experience.
+
 ### Usage Example
 Below is a simple usage example demonstrating how to utilize key functions within `converse_tools.py`:
 
