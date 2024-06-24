@@ -1,11 +1,11 @@
 # bedrock-conversai-toolbox
 Welcome to bedrock-conversai-toolbox! This project utilizes Amazon Bedrock’s ConversAI API to build advanced conversational AI tools. Enhance chatbot development with integrated DuckDuckGo web search and an intuitive Streamlit interface. Perfect for developers aiming to create sophisticated AI-driven applications effortlessly.
 
-## Video Demonstration
+## Tool Use When Needed
 
-To see `bedrock-conversai-toolbox` in action, you can download or view the demonstration video:
+To see `bedrock-conversai-toolbox` in action, check out this image from our demonstration:
 
-[Download or view the video](assets/tool_use.mp4)
+![Bedrock Tool Use](assets/bedrock_tool_use.png)
 
 ## Setup and Installation
 To get started with the bedrock-conversai-toolbox, follow these steps:
