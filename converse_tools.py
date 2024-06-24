@@ -26,11 +26,6 @@ def stream_conversation(stream):
         for event in stream:
             yield event
 
-def handle_chat_input(prompt):
-    st.chat_message("user").markdown(prompt)
-    st.session_state.history.append({"role": "user", "content": [{"text": prompt}]})
-    st.session_state.current_chat.append({"role": "user", "content": [{"text": prompt}]})
-
 def search_duckduckgo(query, region='wt-wt', safesearch='off', max_results=5):
     """Search DuckDuckGo (ddg) for the given query and return the results. This is for websearch, we need this for current information."""
     ddg = DDGS()
@@ -43,6 +38,11 @@ def scrape_webpage(url):
     soup = BeautifulSoup(response.text, 'html.parser')
     text = soup.get_text(separator='\n', strip=True)
     return text
+
+def handle_chat_input(prompt):
+    user_message = {"role": "user", "content": [{"text": prompt}]}
+    st.session_state.history.append(user_message)
+    st.session_state.display_messages.append({"role": "user", "content": prompt})
 
 def process_ai_response(bedrock_client, model_id, messages, system_prompts, inference_config, additional_model_fields, toolConfig):
     while True:
@@ -98,7 +98,7 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                                 }
                             })
                             message_placeholder.markdown(full_response)
-                            tool_input_placeholder.markdown(full_tool_input)
+                            tool_input_placeholder.markdown(f"Tool input: {full_tool_input}")
 
                             # Process tool use
                             tool_results = process_tool_call(tool_name, json.loads(full_tool_input))
@@ -120,6 +120,10 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                                 ]
                             })
 
+                            # Update display messages
+                            st.session_state.display_messages.append({"role": "assistant", "content": full_response})
+                            st.session_state.display_messages.append({"role": "tool", "content": f"Tool: {tool_name}\nInput: {full_tool_input}\nResults: {tool_results}"})
+
                             tool_input_placeholder.empty()
                             is_tool_use = False
                             full_tool_input = ""
@@ -131,22 +135,29 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                                 assistant_message["content"].append({"text": full_response})
                                 message_placeholder.markdown(full_response)
                             messages.append(assistant_message)
+                            # Update display messages
+                            st.session_state.display_messages.append({"role": "assistant", "content": full_response})
                             return  # Exit the function when the assistant's turn is complete
-                            # New code to handle metadata events
-                    elif 'metadata' in event:
-                        metadata = event['metadata']
-                        if 'usage' in metadata:
-                            usage = metadata['usage']
-                            inputTokens = usage.get('inputTokens', 0)
-                            outputTokens = usage.get('outputTokens', 0)
-                            totalTokens = usage.get('totalTokens', 0)
-                            
-                            # Display the usage information in the sidebar
-                            st.sidebar.markdown(f"**Usage Information:**\n- Input Tokens: {inputTokens}\n- Output Tokens: {outputTokens}\n- Total Tokens: {totalTokens}")
+
+                    # Only works with tool use, because of the return above
+                    # elif 'metadata' in event:
+                    #     metadata = event['metadata']
+                    #     if 'usage' in metadata:
+                    #         usage = metadata['usage']
+                    #         inputTokens = usage.get('inputTokens', 0)
+                    #         outputTokens = usage.get('outputTokens', 0)
+                    #         totalTokens = usage.get('totalTokens', 0)
+
+                    #         # Display the usage information in the sidebar
+                    #         st.sidebar.markdown(f"**Usage Information:**\n- Input Tokens: {inputTokens}\n- Output Tokens: {outputTokens}\n- Total Tokens: {totalTokens}")
 
             except ClientError as err:
                 message = err.response['Error']['Message']
                 st.error(f"A client error occurred: {message}")
+                return  # Exit the function on error
+
+        # If we've reached this point, it means we've processed a tool use and need to continue the conversation
+        # The loop will continue, and we'll get the next assistant response
 
 def handle_chat_output(delta, message_placeholder, full_response, is_final=True):
     text_chunk = delta['text']
@@ -177,11 +188,12 @@ def process_tool_use(tool_name, full_tool_input, tool_id):
     full_tool_input_dict = json.loads(full_tool_input)
     tool_result = process_tool_call(tool_name, full_tool_input_dict)
     tool_result_message = {
-        "role": "assistant",
+        "role": "tool",
         "content": [
             {
                 "toolResult": {
                     "toolUseId": tool_id,
+                    "name": tool_name,
                     "content": [
                         {"text": str(tool_result)}
                     ]
@@ -235,16 +247,14 @@ toolConfig = {
     }
 }
 
-def new_chat() -> None:
-    """
-    Reset the chat session and initialize a new conversation chain.
-    """
-    st.session_state["messages"] = []
-    st.session_state["history"] = []
-    st.session_state["current_chat"] = []
+def new_chat():
+    st.session_state.messages = []
+    st.session_state.history = []
+    st.session_state.display_messages = []
+
 
 def main():
-    st.title("Amazon Bedrock Chatbot with Streaming")
+    st.title("Converse API - Tools")
 
     system_prompt = f"""
     Answer as many questions as you can using your existing knowledge.
@@ -252,14 +262,17 @@ def main():
     Today's date is {date.today().strftime("%B %d %Y")}
     If you think a user's question involves something in the future that hasn't happened yet, use the search tool.
     """
+
     # Add a button to start a new chat
     st.sidebar.button("New Chat", on_click=new_chat, type="primary")
+
+    # Initialize session state variables
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "history" not in st.session_state:
         st.session_state.history = []
-    if "current_chat" not in st.session_state:
-        st.session_state.current_chat = []
+    if "display_messages" not in st.session_state:
+        st.session_state.display_messages = []
 
     bedrock_client = create_bedrock_client()
     model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
@@ -267,18 +280,17 @@ def main():
     inference_config = {"temperature": 0.1}
     additional_model_fields = {"top_k": 200}
 
-    # Display all messages from current_chat
-    for message in st.session_state.current_chat:
+    # Display messages
+    for message in st.session_state.display_messages:
         with st.chat_message(message["role"]):
-            if 'text' in message["content"][0]:
-                st.markdown(message["content"][0]["text"])
-            elif 'toolResult' in message["content"][0]:
-                tool_result = message["content"][0]["toolResult"]
-                st.markdown(f"Tool result: {tool_result}")
-    # Clear current_chat after displaying messages
-    st.session_state.current_chat = []
+            st.markdown(message["content"])
 
     if prompt := st.chat_input("Ask me anything!"):
+        # Display user message immediately
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # Handle chat input and process AI response
         handle_chat_input(prompt)
         process_ai_response(bedrock_client, model_id, st.session_state.history, system_prompts, inference_config, additional_model_fields, toolConfig)
 
