@@ -3,11 +3,9 @@ Welcome to bedrock-conversai-toolbox! This project utilizes Amazon Bedrock’s C
 
 ## Video Demonstration
 
-To see `bedrock-conversai-toolbox` in action, check out the video demonstration on YouTube:
+To see `bedrock-conversai-toolbox` in action, you can download or view the demonstration video:
 
-[![Watch the video](https://img.youtube.com/vi/w0fowLDA2dU/0.jpg)](https://youtu.be/w0fowLDA2dU)
-
-Click on the image to watch the video.
+[Download or view the video](assets/tool_use.mp4)
 
 ## Setup and Installation
 To get started with the bedrock-conversai-toolbox, follow these steps:
