@@ -8,9 +8,10 @@ from bs4 import BeautifulSoup
 from botocore.exceptions import ClientError
 
 session = boto3.Session()
-region = session.region_name
+# region = session.region_name
+region = 'us-east-1'
 
-modelId = 'anthropic.claude-3-haiku-20240307-v1:0'
+modelId = 'anthropic.claude-3-5-sonnet-20240620-v1:0'
 
 bedrock_client = boto3.client(service_name = 'bedrock-runtime', region_name = region,)
 
@@ -107,7 +108,7 @@ def main():
                 "modelId": modelId,
                 "system": [{"text": system_prompt}],
                 "messages": st.session_state.messages,
-                "inferenceConfig": {"temperature": 0.0, "maxTokens": 1000},
+                "inferenceConfig": {"temperature": 0.0, "maxTokens": 4096},
                 "toolConfig":toolConfig,
             }
 
