@@ -130,13 +130,15 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                             # Update display messages
                             st.session_state.display_messages.append({"role": "assistant", "content": full_response})
 
-                    elif 'metadata' in event:
+                    if 'metadata' in event:
                         metadata = event['metadata']
                         if 'usage' in metadata:
                             usage = metadata['usage']
-                            input_tokens = usage.get('inputTokens', 0)
-                            output_tokens = usage.get('outputTokens', 0)
-                            total_tokens = usage.get('totalTokens', 0)
+                            st.session_state.token_usage = {
+                                'inputTokens': usage.get('inputTokens', 0),
+                                'outputTokens': usage.get('outputTokens', 0),
+                                'totalTokens': usage.get('totalTokens', 0)
+                            }
 
                             # Update the token usage in the sidebar
                             token_usage_placeholder.markdown(f"**Usage Information:**\n- Input Tokens: {input_tokens}\n- Output Tokens: {output_tokens}\n- Total Tokens: {total_tokens}")

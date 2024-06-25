@@ -22,6 +22,8 @@ def main():
         st.session_state.display_messages = []
     if 'uploader_key' not in st.session_state:
         st.session_state['uploader_key'] = random.randint(1, 100000)
+    if "token_usage" not in st.session_state:
+        st.session_state.token_usage = None
 
     # File uploader - keep it at the top, right after the title
     uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg", "webp"], key=f"uploader_{st.session_state['uploader_key']}")
@@ -38,6 +40,14 @@ def main():
     ]
     model_names = [model["name"] for model in models]
     selected_model_name = st.sidebar.selectbox("Select a model", model_names)
+    # Display token usage if available
+    if st.session_state.token_usage:
+        st.sidebar.markdown("### Token Usage")
+        st.sidebar.markdown(f"Input Tokens: {st.session_state.token_usage['inputTokens']}")
+        st.sidebar.markdown(f"Output Tokens: {st.session_state.token_usage['outputTokens']}")
+        st.sidebar.markdown(f"Total Tokens: {st.session_state.token_usage['totalTokens']}")
+
+
     model_id = next((model["id"] for model in models if model["name"] == selected_model_name), None)
     region_name = "us-west-2"
 
