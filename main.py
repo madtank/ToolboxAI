@@ -2,10 +2,12 @@ import streamlit as st
 from datetime import date
 from src.bedrock_client import create_bedrock_client
 from src.conversation_handler import handle_chat_input, process_ai_response
-from src.utils import new_chat
+from src.utils import new_chat, format_search_results
+import base64
+import random
 
 import logging
-logging.basicConfig(level=logging.INFO) # Set to DEBUG for more detailed logging or INFO for less detailed logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def main():
@@ -19,9 +21,9 @@ def main():
     if "display_messages" not in st.session_state:
         st.session_state.display_messages = []
     if 'uploader_key' not in st.session_state:
-        st.session_state['uploader_key'] = 0
+        st.session_state['uploader_key'] = random.randint(1, 100000)
 
-    # File uploader - at the top, right after the title
+    # File uploader - keep it at the top, right after the title
     uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg", "webp"], key=f"uploader_{st.session_state['uploader_key']}")
 
     # Sidebar elements
@@ -37,6 +39,7 @@ def main():
     model_names = [model["name"] for model in models]
     selected_model_name = st.sidebar.selectbox("Select a model", model_names)
     model_id = next((model["id"] for model in models if model["name"] == selected_model_name), None)
+    region_name = "us-west-2"
 
     # System prompt and other configurations
     system_prompt = f"""
@@ -46,34 +49,53 @@ def main():
     If you think a user's question involves something in the future that hasn't happened yet, use the search tool.
     You can also analyze images that the user uploads.
     """
-    region_name = "us-west-2"
+    
     bedrock_client = create_bedrock_client(region_name)
     system_prompts = [{"text": system_prompt}]
     inference_config = {"temperature": 0.1}
     additional_model_fields = {"top_k": 200}
 
-    # Display chat messages
     for message in st.session_state.display_messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
             if "image" in message:
-                st.image(message["image"], caption="Uploaded Image", use_column_width=True)
+                st.image(message["image"], caption="Uploaded Image", width=300)
+            if "tool_results" in message:
+                with st.expander(f"🔍 Tool Results: {message['tool_name']}", expanded=False):
+                    if message['tool_name'] == 'search':
+                        st.markdown(format_search_results(message["tool_results"]))
+                    else:
+                        st.subheader("Input:")
+                        st.code(message["tool_input"])
+                        st.subheader("Results:")
+                        st.json(message["tool_results"])
 
     # Chat input and processing
     if prompt := st.chat_input("Ask me anything!"):
         image_content = None
         image_format = None
         if uploaded_file is not None:
-            image_content = uploaded_file.read()
+            image_content = uploaded_file.getvalue()
             image_format = uploaded_file.type.split('/')[-1]
 
         try:
+            # Immediately display user message and image
+            with st.chat_message("user"):
+                st.markdown(prompt)
+                if image_content:
+                    image_b64 = base64.b64encode(image_content).decode()
+                    st.image(f"data:image/{image_format};base64,{image_b64}", caption="Uploaded Image", width=300)
+
+            # Update session state
             handle_chat_input(prompt, image_content, image_format)
+
+            # Process AI response
             process_ai_response(bedrock_client, model_id, st.session_state.history, system_prompts, inference_config, additional_model_fields)
 
-            # Reset the uploader key to allow new uploads
-            st.session_state['uploader_key'] += 1
+            # Update the uploader key to reset the file uploader
+            st.session_state['uploader_key'] = random.randint(1, 100000)
             st.rerun()
+
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
             logger.exception("An error occurred during chat processing")

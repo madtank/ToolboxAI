@@ -1,14 +1,34 @@
 # ToolboxAI
 
-<img src="assets/icon.webp" alt="ToolboxAI Logo" width="100" height="100">
+ToolboxAI is a Streamlit application that leverages the [AWS Bedrock Converse Stream API](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html) with Claude 3, integrating powerful tool use capabilities for web search, web scraping, and image analysis. This versatile AI assistant can process and analyze uploaded images, providing insights and descriptions alongside its text-based interactions.
 
-ToolboxAI is a Streamlit application that leverages the [AWS Bedrock Converse Stream API](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html) with Claude 3, integrating powerful tool use capabilities for web search and web scraping.
+<img src="assets/icon.webp" alt="ToolboxAI Logo" width="200" height="200">
+
+## Key Features:
+
+- Interactive chat interface powered by Claude 3 via AWS Bedrock
+- Seamless integration of web search and web scraping tools
+- Image upload and analysis capabilities
+- Real-time conversation streaming
+- Token usage tracking for efficient management
+
+With ToolboxAI, users can engage in rich, multimodal conversations that combine text-based queries, web information retrieval, and visual content analysis.
 
 ## Tool Use Demonstration
 
 See ToolboxAI in action with this image from our demonstration:
 
-![Bedrock Tool Use](assets/bedrock_tool_use.png)
+<img src="assets/bedrock_tool_use.png" alt="Bedrock Tool Use" width="600"/>
+
+## New Feature: Image Upload and Analysis
+
+ToolboxAI now supports image uploads, allowing for more diverse and rich interactions with the AI:
+
+- **Seamless Image Integration**: Users can now upload images directly into the chat interface.
+- **AI Image Analysis**: The AI can analyze and comment on uploaded images, providing insights and descriptions.
+- **Flexible Format Support**: Supports common image formats including PNG, JPG, JPEG, and WebP.
+
+<img src="assets/image_upload.png" alt="Image Upload Feature" width="600"/>
 
 ## Prerequisites
 
@@ -41,12 +61,12 @@ streamlit run main.py
 
 This command starts the Streamlit server and opens the application in your default web browser.
 
-## Key Features
+To use this feature:
+1. Click on the "Upload an image" button at the top of the chat interface.
+2. Select an image file from your device.
+3. The image will be displayed in the chat and can be referenced in your conversations with the AI.
 
-- Interactive chat interface powered by Claude 3 via AWS Bedrock
-- Seamless integration of web search and web scraping tools
-- Real-time conversation streaming
-- Token usage tracking for efficient management
+This addition opens up new possibilities for visual-based queries and analyses. Try it out and explore how it enhances your interactions with ToolboxAI!
 
 ## Application Structure
 

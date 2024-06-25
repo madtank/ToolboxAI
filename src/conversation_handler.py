@@ -87,8 +87,9 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
 
                             tool_results = process_tool_call(tool_name, json.loads(full_tool_input))
                             # Display tool results in an expander
-                            with st.expander(f"Tool Results: {tool_name}", expanded=False):
-                                st.markdown(f"{tool_results}")
+                            with st.expander(f"🔍 Tool Results: {tool_name}", expanded=False):
+                                st.json(tool_results)
+
                             # Add assistant message and tool result as separate messages
                             messages.append(assistant_message)
                             messages.append({
@@ -107,8 +108,13 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
 
                             # Update display messages
                             st.session_state.display_messages.append({"role": "assistant", "content": full_response})
-                            st.session_state.display_messages.append({"role": "tool", "content": f"Tool: {tool_name}\nInput: {full_tool_input}\nResults: {tool_results}"})
-
+                            st.session_state.display_messages.append({
+                                "role": "tool", 
+                                "content": f"Tool used: {tool_name}",
+                                "tool_name": tool_name,
+                                "tool_input": full_tool_input,
+                                "tool_results": tool_results
+                            })
                             tool_input_placeholder.empty()
                             is_tool_use = False
                             full_tool_input = ""
