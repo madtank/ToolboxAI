@@ -5,10 +5,26 @@ from src.bedrock_client import get_stream, stream_conversation
 from src.utils import handle_chat_output, handle_tool_use
 from src.tools import process_tool_call
 
-def handle_chat_input(prompt):
+def handle_chat_input(prompt, image_content=None, image_format=None):
     user_message = {"role": "user", "content": [{"text": prompt}]}
+    display_message = {"role": "user", "content": prompt}
+    
+    if image_content:
+        user_message["content"].append({
+            "image": {
+                "format": image_format,
+                "source": {
+                    "bytes": image_content
+                }
+            }
+        })
+        # Store image content in base64 format for display
+        import base64
+        image_b64 = base64.b64encode(image_content).decode()
+        display_message["image"] = f"data:image/{image_format};base64,{image_b64}"
+    
     st.session_state.history.append(user_message)
-    st.session_state.display_messages.append({"role": "user", "content": prompt})
+    st.session_state.display_messages.append(display_message)
 
 def process_ai_response(bedrock_client, model_id, messages, system_prompts, inference_config, additional_model_fields):
     while True:
@@ -71,8 +87,9 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
 
                             tool_results = process_tool_call(tool_name, json.loads(full_tool_input))
                             # Display tool results in an expander
-                            with st.expander(f"Tool Results: {tool_name}", expanded=False):
-                                st.markdown(f"{tool_results}")
+                            with st.expander(f"🔍 Tool Results: {tool_name}", expanded=False):
+                                st.json(tool_results)
+
                             # Add assistant message and tool result as separate messages
                             messages.append(assistant_message)
                             messages.append({
@@ -91,8 +108,13 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
 
                             # Update display messages
                             st.session_state.display_messages.append({"role": "assistant", "content": full_response})
-                            st.session_state.display_messages.append({"role": "tool", "content": f"Tool: {tool_name}\nInput: {full_tool_input}\nResults: {tool_results}"})
-
+                            st.session_state.display_messages.append({
+                                "role": "tool", 
+                                "content": f"Tool used: {tool_name}",
+                                "tool_name": tool_name,
+                                "tool_input": full_tool_input,
+                                "tool_results": tool_results
+                            })
                             tool_input_placeholder.empty()
                             is_tool_use = False
                             full_tool_input = ""
@@ -108,13 +130,15 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                             # Update display messages
                             st.session_state.display_messages.append({"role": "assistant", "content": full_response})
 
-                    elif 'metadata' in event:
+                    if 'metadata' in event:
                         metadata = event['metadata']
                         if 'usage' in metadata:
                             usage = metadata['usage']
-                            input_tokens = usage.get('inputTokens', 0)
-                            output_tokens = usage.get('outputTokens', 0)
-                            total_tokens = usage.get('totalTokens', 0)
+                            st.session_state.token_usage = {
+                                'inputTokens': usage.get('inputTokens', 0),
+                                'outputTokens': usage.get('outputTokens', 0),
+                                'totalTokens': usage.get('totalTokens', 0)
+                            }
 
                             # Update the token usage in the sidebar
                             token_usage_placeholder.markdown(f"**Usage Information:**\n- Input Tokens: {input_tokens}\n- Output Tokens: {output_tokens}\n- Total Tokens: {total_tokens}")
