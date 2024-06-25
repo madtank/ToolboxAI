@@ -1,13 +1,6 @@
-# Bedrock ConversAI Toolbox
+# Converse API - Tools Application
 
-Bedrock ConversAI Toolbox is a Streamlit-based application that leverages AWS Bedrock and Claude AI to provide an interactive chat interface with tool-use capabilities.
-
-## Features
-
-- Interactive chat interface powered by AWS Bedrock and Claude AI
-- Dynamic tool use for web searches and web scraping
-- Real-time token usage tracking
-- Streamlit-based user interface for easy interaction
+This Streamlit application demonstrates the use of the AWS Bedrock Converse API with Claude 3, incorporating tool use capabilities for web search and web scraping.
 
 ## Tool Use When Needed
 
@@ -17,40 +10,28 @@ To see `bedrock-conversai-toolbox` in action, check out this image from our demo
 
 ## Prerequisites
 
-Before running the application, ensure you have the following:
+- Python 3.9+
+- AWS account with access to Bedrock
+- Configured AWS credentials
 
-- Python 3.7 or higher
-- AWS account with Bedrock access
-- AWS CLI configured with appropriate credentials
-
-## Installation
+## Setup
 
 1. Clone the repository:
    ```
    git clone https://github.com/madtank/bedrock-conversai-toolbox.git
-   cd bedrock-conversai-toolbox
+
    ```
 
-2. Create a virtual environment (optional but recommended):
-   ```
-   python -m venv venv
-   source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
-   ```
-
-3. Install the required packages:
+2. Install the required dependencies:
    ```
    pip install -r requirements.txt
    ```
 
-## Configuration
-
-1. Ensure your AWS CLI is configured with the correct credentials and region.
-
-2. If necessary, update the `region_name` in the `create_bedrock_client()` function in `main.py` to match your AWS Bedrock endpoint region.
+3. Ensure your AWS credentials are properly configured.
 
 ## Running the Application
 
-To run the Bedrock ConversAI Toolbox:
+To run the application, use the following command:
 
 ```
 streamlit run main.py
@@ -58,33 +39,39 @@ streamlit run main.py
 
 This will start the Streamlit server and open the application in your default web browser.
 
-## File Structure
+## Features
 
-The application currently consists of two main files:
+- Interactive chat interface with Claude 3 via AWS Bedrock
+- Integration of web search and web scraping tools
+- Real-time conversation streaming
+- Token usage tracking
 
-- `main.py`: Contains the Streamlit UI, main application logic, and conversation handling.
-- `tools.py`: Contains tool-related functions (web search and web scraping) and configurations.
+## Application Structure
 
-## Usage
+The application now consists of five main files:
 
-1. Once the application is running, you'll see a chat interface.
-2. Type your message in the input box and press Enter.
-3. The AI will respond, and if necessary, it will use tools to gather additional information.
-4. You can start a new chat at any time by clicking the "New Chat" button in the sidebar.
-5. Token usage information is displayed in the sidebar after each AI response.
+1. `main.py`: Contains the Streamlit UI and the main application loop.
+2. `bedrock_client.py`: Handles interactions with the AWS Bedrock service.
+3. `conversation_handler.py`: Manages AI response processing and conversation flow.
+4. `utils.py`: Contains utility functions used across the application.
+5. `tools.py`: Contains tool-related functions (web search and web scraping) and configurations.
 
-## Future Improvements
+## Customization
 
-- Implement user authentication
-- Add more tools and expand tool capabilities
-- Create separate files for Bedrock client handling and conversation processing
-- Implement error handling and logging
-- Add unit tests for key functions
+To add new tools or modify existing ones, update the `tools.py` file. Ensure to update the `toolConfig` dictionary with any new tools you add.
+
+## Troubleshooting
+
+If you encounter any issues:
+
+1. Verify your AWS credentials are correctly set up.
+2. Ensure all dependencies are installed correctly.
+3. Check the Streamlit and AWS Bedrock documentation for any service-specific issues.
 
 ## Contributing
 
-Contributions to Bedrock ConversAI Toolbox are welcome! Please feel free to submit a Pull Request.
+Contributions to improve the application are welcome. Please follow the standard fork-and-pull request workflow.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
