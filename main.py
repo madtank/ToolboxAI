@@ -1,8 +1,8 @@
 import streamlit as st
 from datetime import date
-from bedrock_client import create_bedrock_client
-from conversation_handler import handle_chat_input, process_ai_response
-from utils import new_chat
+from src.bedrock_client import create_bedrock_client
+from src.conversation_handler import handle_chat_input, process_ai_response
+from src.utils import new_chat
 
 def main():
     st.title("Converse API - Tools")

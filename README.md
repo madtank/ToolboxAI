@@ -51,10 +51,10 @@ This will start the Streamlit server and open the application in your default we
 The application now consists of five main files:
 
 1. `main.py`: Contains the Streamlit UI and the main application loop.
-2. `bedrock_client.py`: Handles interactions with the AWS Bedrock service.
-3. `conversation_handler.py`: Manages AI response processing and conversation flow.
-4. `utils.py`: Contains utility functions used across the application.
-5. `tools.py`: Contains tool-related functions (web search and web scraping) and configurations.
+2. `src/bedrock_client.py`: Handles interactions with the AWS Bedrock service.
+3. `src/conversation_handler.py`: Manages AI response processing and conversation flow.
+4. `src/utils.py`: Contains utility functions used across the application.
+5. `src/tools.py`: Contains tool-related functions (web search and web scraping) and configurations.
 
 ## Customization
 

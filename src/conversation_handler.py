@@ -1,9 +1,9 @@
 import streamlit as st
 import json
 from botocore.exceptions import ClientError
-from bedrock_client import get_stream, stream_conversation
-from utils import handle_chat_output, handle_tool_use
-from tools import process_tool_call
+from src.bedrock_client import get_stream, stream_conversation
+from src.utils import handle_chat_output, handle_tool_use
+from src.tools import process_tool_call
 
 def handle_chat_input(prompt):
     user_message = {"role": "user", "content": [{"text": prompt}]}
@@ -70,8 +70,9 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                             tool_input_placeholder.markdown(f"Tool input: {full_tool_input}")
 
                             tool_results = process_tool_call(tool_name, json.loads(full_tool_input))
-                            st.markdown(f"**Tool Results:** {tool_results}")
-
+                            # Display tool results in an expander
+                            with st.expander(f"Tool Results: {tool_name}", expanded=False):
+                                st.markdown(f"{tool_results}")
                             # Add assistant message and tool result as separate messages
                             messages.append(assistant_message)
                             messages.append({

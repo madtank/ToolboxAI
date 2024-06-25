@@ -1,5 +1,5 @@
 import boto3
-from tools import toolConfig
+from src.tools import toolConfig
 
 def create_bedrock_client():
     return boto3.client(service_name='bedrock-runtime', region_name='us-east-1')
