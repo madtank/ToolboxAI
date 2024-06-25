@@ -1,10 +1,12 @@
-# Converse API - Tools Application
+# ToolboxAI
 
-This Streamlit application demonstrates the use of the AWS Bedrock Converse API with Claude 3, incorporating tool use capabilities for web search and web scraping.
+<img src="assets/icon.webp" alt="ToolboxAI Logo" width="100" height="100">
 
-## Tool Use When Needed
+ToolboxAI is a Streamlit application that leverages the [AWS Bedrock Converse Stream API](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html) with Claude 3, integrating powerful tool use capabilities for web search and web scraping.
 
-To see `bedrock-conversai-toolbox` in action, check out this image from our demonstration:
+## Tool Use Demonstration
+
+See ToolboxAI in action with this image from our demonstration:
 
 ![Bedrock Tool Use](assets/bedrock_tool_use.png)
 
@@ -18,8 +20,8 @@ To see `bedrock-conversai-toolbox` in action, check out this image from our demo
 
 1. Clone the repository:
    ```
-   git clone https://github.com/madtank/bedrock-conversai-toolbox.git
-
+   git clone https://github.com/madtank/ToolboxAI.git
+   cd ToolboxAI
    ```
 
 2. Install the required dependencies:
@@ -31,47 +33,47 @@ To see `bedrock-conversai-toolbox` in action, check out this image from our demo
 
 ## Running the Application
 
-To run the application, use the following command:
+Launch the application with:
 
 ```
 streamlit run main.py
 ```
 
-This will start the Streamlit server and open the application in your default web browser.
+This command starts the Streamlit server and opens the application in your default web browser.
 
-## Features
+## Key Features
 
-- Interactive chat interface with Claude 3 via AWS Bedrock
-- Integration of web search and web scraping tools
+- Interactive chat interface powered by Claude 3 via AWS Bedrock
+- Seamless integration of web search and web scraping tools
 - Real-time conversation streaming
-- Token usage tracking
+- Token usage tracking for efficient management
 
 ## Application Structure
 
-The application now consists of five main files:
+ToolboxAI consists of five main components:
 
-1. `main.py`: Contains the Streamlit UI and the main application loop.
-2. `src/bedrock_client.py`: Handles interactions with the AWS Bedrock service.
-3. `src/conversation_handler.py`: Manages AI response processing and conversation flow.
-4. `src/utils.py`: Contains utility functions used across the application.
-5. `src/tools.py`: Contains tool-related functions (web search and web scraping) and configurations.
+1. `main.py`: Streamlit UI and main application loop
+2. `src/bedrock_client.py`: AWS Bedrock service interactions
+3. `src/conversation_handler.py`: AI response processing and conversation flow management
+4. `src/utils.py`: Utility functions for various application needs
+5. `src/tools.py`: Tool-related functions and configurations for web search and scraping
 
 ## Customization
 
-To add new tools or modify existing ones, update the `tools.py` file. Ensure to update the `toolConfig` dictionary with any new tools you add.
+Extend ToolboxAI's capabilities by modifying `src/tools.py`. Remember to update the `toolConfig` dictionary when adding new tools.
 
 ## Troubleshooting
 
-If you encounter any issues:
+If you encounter issues:
 
-1. Verify your AWS credentials are correctly set up.
-2. Ensure all dependencies are installed correctly.
-3. Check the Streamlit and AWS Bedrock documentation for any service-specific issues.
+1. Verify your AWS credentials are correctly set up
+2. Ensure all dependencies are properly installed
+3. Consult the Streamlit and AWS Bedrock documentation for service-specific troubleshooting
 
 ## Contributing
 
-Contributions to improve the application are welcome. Please follow the standard fork-and-pull request workflow.
+We welcome contributions to enhance ToolboxAI. Please follow the standard fork-and-pull request workflow for your submissions.
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+ToolboxAI is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for full details.
