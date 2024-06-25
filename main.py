@@ -5,10 +5,14 @@ from src.conversation_handler import handle_chat_input, process_ai_response
 from src.utils import new_chat, format_search_results
 import base64
 import random
+from PIL import Image
 
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+icon = Image.open("assets/favicon.ico")
+st.set_page_config(page_title="ToolboxAI", page_icon=icon)
 
 def main():
     st.title("ToolboxAI")

@@ -2,7 +2,7 @@
 
 ToolboxAI is a Streamlit application that leverages the [AWS Bedrock Converse Stream API](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html) with Claude 3, integrating powerful tool use capabilities for web search, web scraping, and image analysis. This versatile AI assistant can process and analyze uploaded images, providing insights and descriptions alongside its text-based interactions.
 
-<img src="assets/icon.webp" alt="ToolboxAI Logo" width="200" height="200">
+<img src="assets/icon.png" alt="ToolboxAI Logo" width="200" height="200">
 
 ## Key Features:
 
