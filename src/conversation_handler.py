@@ -5,10 +5,26 @@ from src.bedrock_client import get_stream, stream_conversation
 from src.utils import handle_chat_output, handle_tool_use
 from src.tools import process_tool_call
 
-def handle_chat_input(prompt):
+def handle_chat_input(prompt, image_content=None, image_format=None):
     user_message = {"role": "user", "content": [{"text": prompt}]}
+    display_message = {"role": "user", "content": prompt}
+    
+    if image_content:
+        user_message["content"].append({
+            "image": {
+                "format": image_format,
+                "source": {
+                    "bytes": image_content
+                }
+            }
+        })
+        # Store image content in base64 format for display
+        import base64
+        image_b64 = base64.b64encode(image_content).decode()
+        display_message["image"] = f"data:image/{image_format};base64,{image_b64}"
+    
     st.session_state.history.append(user_message)
-    st.session_state.display_messages.append({"role": "user", "content": prompt})
+    st.session_state.display_messages.append(display_message)
 
 def process_ai_response(bedrock_client, model_id, messages, system_prompts, inference_config, additional_model_fields):
     while True:
