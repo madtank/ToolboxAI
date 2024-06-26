@@ -1,6 +1,6 @@
 # ToolboxAI
 
-ToolboxAI is a Streamlit application that leverages the [AWS Bedrock Converse Stream API](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html) with Claude 3, integrating powerful tool use capabilities for web search, web scraping, and image analysis. This versatile AI assistant can process and analyze uploaded images, providing insights and descriptions alongside its text-based interactions.
+ToolboxAI is a Streamlit application that leverages the [AWS Bedrock Converse Stream API](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html) with Claude 3, integrating powerful tool use capabilities for web search, web scraping, and document analysis. This versatile AI assistant can process and analyze uploaded images and documents, providing insights and descriptions alongside its text-based interactions.
 
 <img src="assets/icon.png" alt="ToolboxAI Logo" width="200" height="200">
 
@@ -8,11 +8,11 @@ ToolboxAI is a Streamlit application that leverages the [AWS Bedrock Converse St
 
 - Interactive chat interface powered by Claude 3 via AWS Bedrock
 - Seamless integration of web search and web scraping tools
-- Image upload and analysis capabilities
+- Image and document upload and analysis capabilities
 - Real-time conversation streaming
 - Token usage tracking for efficient management
 
-With ToolboxAI, users can engage in rich, multimodal conversations that combine text-based queries, web information retrieval, and visual content analysis.
+With ToolboxAI, users can engage in rich, multimodal conversations that combine text-based queries, web information retrieval, and visual/document content analysis.
 
 ## Tool Use Demonstration
 
@@ -20,15 +20,20 @@ See ToolboxAI in action with this image from our demonstration:
 
 <img src="assets/bedrock_tool_use.png" alt="Bedrock Tool Use" width="600"/>
 
-## New Feature: Image Upload and Analysis
+## New Feature: Image and Document Upload and Analysis
 
-ToolboxAI now supports image uploads, allowing for more diverse and rich interactions with the AI:
+ToolboxAI now supports both image and document uploads, allowing for more diverse and rich interactions with the AI:
 
-- **Seamless Image Integration**: Users can now upload images directly into the chat interface.
-- **AI Image Analysis**: The AI can analyze and comment on uploaded images, providing insights and descriptions.
-- **Flexible Format Support**: Supports common image formats including PNG, JPG, JPEG, and WebP.
+- **Seamless File Integration**: Users can now upload images and documents directly into the chat interface.
+- **AI Content Analysis**: The AI can analyze and comment on uploaded files, providing insights and descriptions.
+- **Flexible Format Support**: 
+  - Images: PNG, JPG, JPEG, WebP
 
 <img src="assets/image_upload.png" alt="Image Upload Feature" width="600"/>
+
+  - Documents: PDF, CSV, DOC, DOCX, XLS, XLSX, HTML, TXT, MD
+
+<img src="assets/file_upload.png" alt="File Upload Feature" width="600"/>
 
 ## Prerequisites
 

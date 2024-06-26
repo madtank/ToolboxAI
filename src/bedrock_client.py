@@ -1,10 +1,9 @@
 import boto3
-from src.tools import toolConfig
 
 def create_bedrock_client(region):
     return boto3.client(service_name='bedrock-runtime', region_name=region)
 
-def get_stream(bedrock_client, model_id, messages, system_prompts, inference_config, additional_model_fields):
+def get_stream(bedrock_client, model_id, messages, system_prompts, inference_config, additional_model_fields, toolConfig):
     response = bedrock_client.converse_stream(
         modelId=model_id,
         messages=messages,
