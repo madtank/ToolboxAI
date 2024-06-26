@@ -3,26 +3,51 @@ import json
 from botocore.exceptions import ClientError
 from src.bedrock_client import get_stream, stream_conversation
 from src.utils import handle_chat_output, handle_tool_use
-from src.tools import process_tool_call
+from src.tools import toolConfig, process_tool_call
+import os
+import base64
 
-def handle_chat_input(prompt, image_content=None, image_format=None):
+def handle_chat_input(prompt, file_content=None, file_name=None):
     user_message = {"role": "user", "content": [{"text": prompt}]}
     display_message = {"role": "user", "content": prompt}
     
-    if image_content:
-        user_message["content"].append({
-            "image": {
-                "format": image_format,
-                "source": {
-                    "bytes": image_content
+    if file_content and file_name:
+        # Split the filename and extension
+        name, ext = os.path.splitext(file_name)
+        
+        # Remove the dot from the extension
+        file_format = ext.lstrip('.').lower()
+        if file_format in ["png", "jpg", "jpeg", "webp"]:
+            # Handle image files
+            user_message["content"].append({
+                "image": {
+                    "format": file_format,
+                    "source": {
+                        "bytes": file_content
+                    }
                 }
-            }
-        })
-        # Store image content in base64 format for display
-        import base64
-        image_b64 = base64.b64encode(image_content).decode()
-        display_message["image"] = f"data:image/{image_format};base64,{image_b64}"
-    
+            })
+            file_b64 = base64.b64encode(file_content).decode()
+            display_message["image"] = f"data:image/{file_format};base64,{file_b64}"
+        else:
+            # Handle document files
+            document_formats = ["pdf", "csv", "doc", "docx", "xls", "xlsx", "html", "txt", "md"]
+            if file_format not in document_formats:
+                file_format = "txt"  # Default to txt if format is not recognized
+            
+            user_message["content"].append({
+                "document": {
+                    "name": name,  # Use the filename without extension
+                    "format": file_format,
+                    "source": {
+                        "bytes": file_content
+                    }
+                }
+            })
+            display_message["document"] = name  # Use the filename without extension
+        
+        display_message["file_type"] = file_format
+        display_message["file_name"] = file_name
     st.session_state.history.append(user_message)
     st.session_state.display_messages.append(display_message)
 
@@ -49,7 +74,8 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                     messages, 
                     system_prompts, 
                     inference_config, 
-                    additional_model_fields
+                    additional_model_fields,
+                    toolConfig  # Add this line
                 )
                 for event in stream_conversation(stream):
                     if 'contentBlockStart' in event:
@@ -152,4 +178,5 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
             except ClientError as err:
                 message = err.response['Error']['Message']
                 st.error(f"A client error occurred: {message}")
+                print(f"A client error occurred: {message}")
                 return  # Exit the function on error
