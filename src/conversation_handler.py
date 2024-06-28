@@ -179,4 +179,4 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                 message = err.response['Error']['Message']
                 st.error(f"A client error occurred: {message}")
                 print(f"A client error occurred: {message}")
-                return  # Exit the function on error
+                st.stop()
