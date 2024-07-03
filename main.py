@@ -11,7 +11,6 @@ from src.memory_manager import MemoryManager  # Pbdcb
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-current_datetime = datetime.now().strftime("%B %d %Y %I:%M %p")
 
 icon = Image.open("assets/favicon.ico")
 st.set_page_config(page_title="ToolboxAI", page_icon=icon)
@@ -32,7 +31,7 @@ def main():
         st.session_state.token_usage = None
 
     # File uploader for both images and documents
-    allowed_types = ["png", "jpg", "jpeg", "webp", "pdf", "csv", "doc", "docx", "xls", "xlsx", "html", "txt", "md"]
+    allowed_types = ["png", "jpg", "jpeg", "webp", "pdf", "csv", "doc", "docx", "xls", "xlsx", "html", "txt", "md", "py"]
     uploaded_file = st.file_uploader("Upload an image or document", type=allowed_types, key=f"uploader_{st.session_state['uploader_key']}")
 
     # Sidebar elements
@@ -62,37 +61,19 @@ def main():
         st.sidebar.markdown(f"Output Tokens: {st.session_state.token_usage['outputTokens']}")
         st.sidebar.markdown(f"Total Tokens: {st.session_state.token_usage['totalTokens']}")
 
-    # System prompt and other configurations
+    # Get current date and time
+    current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     system_prompt = f"""
-    You are a personal AI assistant. Your primary goal is to provide helpful, personalized assistance.
+    You are ToolboxAI, a personal AI assistant focused on personalized help.
 
-    1. At the start of each new conversation, use the 'get_user_profile' tool with the input "all" to retrieve basic user information. If none exists, engage the user to learn about their preferences, hobbies, and personal details.
+    ALWAYS start by using get_user_profile tool to retrieve latest user info.
 
-    2. Regularly use the 'save_memory' tool to store important user information, including:
-    - Preferences and dislikes
-    - Hobbies and interests
-    - Personal details relevant to future interactions
-    - Any information that helps personalize your assistance
+    If profile needs updating, ask user questions and use update_user_profile tool.
 
-    3. Use the 'get_user_profile' tool with specific inputs ("preferences", "hobbies", "personal_details") when you need particular information about the user.
+    Current date/time: {current_datetime}
 
-    4. When using tools it may be preferable to know the time and date, so here it is for reference: {current_datetime}.
-
-    5. You can analyze user-uploaded images.
-
-    6. Always strive to provide personalized, context-aware responses based on the user's saved information.
-
-    7. You have access to an RSS feed tool that can fetch recent news from various sources. Use it when asked about recent news or developments. The available RSS feeds are:
-    - AI news: Use "AI news" as the url parameter for TechCrunch's AI news feed
-    - Finance news: Use "Finance news" as the url parameter for Wall Street Journal's Markets feed
-    - US News: Use "US News" as the url parameter for New York Times' US news feed
-    - World News: Use "World News" as the url parameter for New York Times' World news feed
-
-    8. You can analyze Excel files using the excel_analysis tool. Use it when asked about data in uploaded Excel files.
-
-    9. If you think a user's question involves something in the future that hasn't happened yet, use the search tool.
-
-    Remember, building and using a comprehensive user profile over time is key to providing excellent assistance. Only search the web for queries that you cannot confidently answer based on your existing knowledge or the user's profile.
+    Use available tools for accurate, personalized responses based on user's profile and needs.
     """
     
     bedrock_client = create_bedrock_client(region_name)
@@ -111,15 +92,29 @@ def main():
                 st.image(message["image"], caption="Uploaded Image", width=300)
             elif "document" in message:
                 st.markdown(f"Document uploaded: {message['document']}")
+            
+            # Check if this message contains tool results
             if "tool_results" in message:
-                with st.expander(f"🔍 Tool Results: {message['tool_name']}", expanded=False):
-                    if message['tool_name'] == 'search':
-                        st.markdown(format_search_results(message["tool_results"]))
-                    elif message['tool_name'] == 'rss_feed':
-                        st.markdown(format_rss_results(message["tool_results"]))
+                tool_name = message.get('tool_name', 'unknown')
+                with st.expander(f"🔍 Tool Results: {tool_name}", expanded=False):
+                    if tool_name == 'search':
+                        try:
+                            formatted_results = format_search_results(message["tool_results"])
+                            st.markdown(formatted_results)
+                        except Exception as e:
+                            st.error(f"Error formatting search results: {str(e)}")
+                            st.json(message["tool_results"])  # Display raw results as fallback
+                    elif tool_name == 'rss_feed':
+                        try:
+                            formatted_results = format_rss_results(message["tool_results"])
+                            st.markdown(formatted_results)
+                        except Exception as e:
+                            st.error(f"Error formatting RSS results: {str(e)}")
+                            st.json(message["tool_results"])  # Display raw results as fallback
                     else:
-                        st.subheader("Input:")
-                        st.code(message["tool_input"])
+                        if "tool_input" in message:
+                            st.subheader("Input:")
+                            st.code(message["tool_input"])
                         st.subheader("Results:")
                         st.json(message["tool_results"])
 

@@ -1,4 +1,5 @@
 import requests
+import json
 from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
 import feedparser
@@ -72,32 +73,54 @@ def fetch_rss_feed(url, num_entries=5):
         return None
 
 def process_tool_call(tool_name, tool_input):
-    if tool_name == "search":
-        return search_duckduckgo(tool_input["query"])
-    elif tool_name == "webscrape":
-        return scrape_webpage(tool_input["url"])
-    elif tool_name == "rss_feed":
-        return fetch_rss_feed(tool_input["url"], tool_input.get("num_entries", 5))
-    elif tool_name == "save_memory":
-        return memory_manager.save_memory(tool_input["text"])
-    elif tool_name == "recall_memories":
-        return memory_manager.recall_memories(tool_input["query"])
-    elif tool_name == "get_user_profile":
-        return memory_manager.get_user_profile(tool_input["info_type"])
+    logger.info(f"Processing tool call for: {tool_name}")
+    logger.debug(f"Tool input: {tool_input}")
+
+    try:
+        if tool_name == "search":
+            search_results = search_duckduckgo(tool_input["query"])
+            return json.dumps({"result": search_results})
+        elif tool_name == "webscrape":
+            return json.dumps({"result": scrape_webpage(tool_input["url"])})
+        elif tool_name == "rss_feed":
+            rss_results = fetch_rss_feed(tool_input["url"], tool_input.get("num_entries", 5))
+            return json.dumps({"result": rss_results})
+        elif tool_name == "save_memory":
+            return json.dumps({"result": memory_manager.save_memory(tool_input["text"], tool_input.get("metadata"))})
+        elif tool_name == "recall_memories":
+            result = memory_manager.recall_memories(tool_input["query"], tool_input.get("k", 3))
+            return json.dumps({"result": result})
+        elif tool_name == "update_memory":
+            return json.dumps({"result": memory_manager.update_memory(tool_input["memory_id"], tool_input["new_text"], tool_input.get("new_metadata"))})
+        elif tool_name == "delete_memory":
+            return json.dumps({"result": memory_manager.delete_memory(tool_input["memory_id"])})
+        elif tool_name == "update_user_profile":
+            return json.dumps({"result": memory_manager.update_user_profile(tool_input["profile_data"])})
+        elif tool_name == "get_user_profile":
+            return json.dumps({"result": memory_manager.get_user_profile()})
+        elif tool_name == "list_all_memories":
+            return json.dumps({"result": memory_manager.list_all_memories()})
+        else:
+            logger.warning(f"Unknown tool: {tool_name}")
+            return json.dumps({"error": f"Unknown tool: {tool_name}"})
+    except Exception as e:
+        logger.error(f"Error processing tool call for {tool_name}: {str(e)}")
+        return json.dumps({"error": f"Error processing tool call: {str(e)}"})
+
 
 toolConfig = {
     'tools': [
         {
             'toolSpec': {
                 'name': 'search',
-                'description': 'This tool allows you to search the web using DuckDuckGo. You can use it to find information, articles, websites, and more. Simply provide a query, and the tool will return a list of search results.',
+                'description': 'Web search using DuckDuckGo. Use for current info, news, or specific facts not in your knowledge base.',
                 'inputSchema': {
                     'json': {
                         'type': 'object',
                         'properties': {
                             'query': {
                                 'type': 'string',
-                                'description': 'The search query. This can be any string of text that you want to search for.'
+                                'description': 'Search query: specific questions or keywords.'
                             }
                         },
                         'required': ['query']
@@ -108,14 +131,14 @@ toolConfig = {
         {
             'toolSpec': {
                 'name': 'webscrape',
-                'description': 'This tool allows you to scrape the content of a webpage. You can use it to extract the text from a webpage, which can then be used as context for further actions. Simply provide a URL, and the tool will return the text content of the webpage.',
+                'description': 'Extract text from a webpage. Use for detailed info from specific pages. Returns raw text without HTML.',
                 'inputSchema': {
                     'json': {
                         'type': 'object',
                         'properties': {
                             'url': {
                                 'type': 'string',
-                                'description': 'The URL of the webpage to scrape. This should be a fully qualified URL, including the http:// or https:// prefix.'
+                                'description': 'Full URL of webpage to scrape (include http:// or https://)'
                             }
                         },
                         'required': ['url']
@@ -126,18 +149,25 @@ toolConfig = {
         {
             'toolSpec': {
                 'name': 'rss_feed',
-                'description': 'This tool fetches and parses RSS feeds, returning the latest entries. It can be used to get recent news or updates from various sources including AI news, Finance news, US News, and World News.',
+                'description': '''
+                Fetch latest entries from predefined RSS feeds. Available options:
+                - "AI news": TechCrunch AI category
+                - "Finance news": Dow Jones Markets
+                - "US News": New York Times US news
+                - "World News": New York Times World news
+                Use for current events or recent developments in these areas.
+                ''',
                 'inputSchema': {
                     'json': {
                         'type': 'object',
                         'properties': {
                             'url': {
                                 'type': 'string',
-                                'description': 'The URL of the RSS feed to fetch or one of the following keys: "AI news", "Finance news", "US News", "World News".'
+                                'description': 'RSS feed key: "AI news", "Finance news", "US News", or "World News".'
                             },
                             'num_entries': {
                                 'type': 'integer',
-                                'description': 'The number of entries to return. Default is 5.',
+                                'description': 'Number of entries to return. Default is 5.',
                                 'default': 5
                             }
                         },
@@ -149,14 +179,18 @@ toolConfig = {
         {
             'toolSpec': {
                 'name': 'save_memory',
-                'description': 'Save an important piece of information for later recall. Use this when you encounter information that might be useful in future conversations.',
+                'description': 'Save important user info as a memory. Use for preferences, interests, or significant details shared during conversation.',
                 'inputSchema': {
                     'json': {
                         'type': 'object',
                         'properties': {
                             'text': {
                                 'type': 'string',
-                                'description': 'The text to save as a memory.'
+                                'description': 'Specific info to save as a memory.'
+                            },
+                            'metadata': {
+                                'type': 'object',
+                                'description': 'Optional metadata for the memory.'
                             }
                         },
                         'required': ['text']
@@ -167,14 +201,19 @@ toolConfig = {
         {
             'toolSpec': {
                 'name': 'recall_memories',
-                'description': 'Recall relevant memories based on a query. Use this at the start of conversations or when you need to retrieve previously saved information.',
+                'description': 'Semantic search on stored memories. Retrieves memories similar to the query, not by exact match or ID.',
                 'inputSchema': {
                     'json': {
                         'type': 'object',
                         'properties': {
                             'query': {
                                 'type': 'string',
-                                'description': 'The query to search for in the saved memories.'
+                                'description': 'Search query for memories.'
+                            },
+                            'k': {
+                                'type': 'integer',
+                                'description': 'Number of memories to retrieve. Default is 3.',
+                                'default': 3
                             }
                         },
                         'required': ['query']
@@ -184,18 +223,87 @@ toolConfig = {
         },
         {
             'toolSpec': {
-                'name': 'get_user_profile',
-                'description': 'Retrieve specific user profile information. Use this at the start of conversations or when you need particular details about the user.',
+                'name': 'update_memory',
+                'description': 'Update an existing memory. Provide memory ID and new content.',
                 'inputSchema': {
                     'json': {
                         'type': 'object',
                         'properties': {
-                            'info_type': {
+                            'memory_id': {
                                 'type': 'string',
-                                'description': 'The type of information to retrieve. Can be "preferences", "hobbies", "personal_details", or "all" for a complete profile.'
+                                'description': 'ID of memory to update.'
+                            },
+                            'new_text': {
+                                'type': 'string',
+                                'description': 'New content for the memory.'
+                            },
+                            'new_metadata': {
+                                'type': 'object',
+                                'description': 'Optional new metadata.'
                             }
                         },
-                        'required': ['info_type']
+                        'required': ['memory_id', 'new_text']
+                    }
+                }
+            }
+        },
+        {
+            'toolSpec': {
+                'name': 'delete_memory',
+                'description': 'Delete a specific memory. Use caution: deletion is irreversible.',
+                'inputSchema': {
+                    'json': {
+                        'type': 'object',
+                        'properties': {
+                            'memory_id': {
+                                'type': 'string',
+                                'description': 'ID of memory to delete.'
+                            }
+                        },
+                        'required': ['memory_id']
+                    }
+                }
+            }
+        },
+        {
+            'toolSpec': {
+                'name': 'list_all_memories',
+                'description': 'List all saved memories. Useful for overview or finding memory IDs.',
+                'inputSchema': {
+                    'json': {
+                        'type': 'object',
+                        'properties': {},
+                        'additionalProperties': False
+                    }
+                }
+            }
+        },
+        {
+            'toolSpec': {
+                'name': 'update_user_profile',
+                'description': 'Update user profile with new information about preferences, interests, or other key details.',
+                'inputSchema': {
+                    'json': {
+                        'type': 'object',
+                        'properties': {
+                            'profile_data': {
+                                'type': 'string',
+                                'description': 'JSON string of user profile data to update.'
+                            }
+                        },
+                        'required': ['profile_data']
+                    }
+                }
+            }
+        },
+        {
+            'toolSpec': {
+                'name': 'get_user_profile',
+                'description': 'Retrieve the complete user profile as stored in the system.',
+                'inputSchema': {
+                    'json': {
+                        'type': 'object',
+                        'properties': {}
                     }
                 }
             }
