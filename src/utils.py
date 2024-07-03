@@ -41,6 +41,9 @@ def format_search_results(results):
     return formatted_output
 
 def format_rss_results(entries):
+    if entries is None or not entries:
+        return "No RSS feed entries found or there was an error fetching the feed."
+
     formatted_output = "RSS Feed Results:\n\n"
     for i, entry in enumerate(entries, 1):
         title = entry.get('title', 'No title')

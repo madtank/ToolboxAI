@@ -1,5 +1,5 @@
 import streamlit as st
-from datetime import date
+from datetime import datetime
 from src.bedrock_client import create_bedrock_client
 from src.conversation_handler import handle_chat_input, process_ai_response
 from src.utils import new_chat, format_search_results, format_rss_results
@@ -11,6 +11,7 @@ from src.memory_manager import MemoryManager  # Pbdcb
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+current_datetime = datetime.now().strftime("%B %d %Y %I:%M %p")
 
 icon = Image.open("assets/favicon.ico")
 st.set_page_config(page_title="ToolboxAI", page_icon=icon)
@@ -63,15 +64,35 @@ def main():
 
     # System prompt and other configurations
     system_prompt = f"""
-    Answer questions using your existing knowledge when possible.
-    Use the search tool for queries you can't confidently answer or that involve future events (as of {date.today().strftime("%B %d %Y")}).
-    When using tools:
-    1. Check the function description for any suggested parameters or sources (e.g., specific RSS feeds for news).
-    2. Use exactly provided values for parameters when given.
-    3. Only ask about or provide values for required parameters.
-    4. Make multiple independent tool calls in a single block when possible.
-    You can analyze user-uploaded images.
-    Provide concise, accurate responses and ask for clarification if needed.
+    You are a personal AI assistant. Your primary goal is to provide helpful, personalized assistance.
+
+    1. At the start of each new conversation, use the 'get_user_profile' tool with the input "all" to retrieve basic user information. If none exists, engage the user to learn about their preferences, hobbies, and personal details.
+
+    2. Regularly use the 'save_memory' tool to store important user information, including:
+    - Preferences and dislikes
+    - Hobbies and interests
+    - Personal details relevant to future interactions
+    - Any information that helps personalize your assistance
+
+    3. Use the 'get_user_profile' tool with specific inputs ("preferences", "hobbies", "personal_details") when you need particular information about the user.
+
+    4. When using tools it may be preferable to know the time and date, so here it is for reference: {current_datetime}.
+
+    5. You can analyze user-uploaded images.
+
+    6. Always strive to provide personalized, context-aware responses based on the user's saved information.
+
+    7. You have access to an RSS feed tool that can fetch recent news from various sources. Use it when asked about recent news or developments. The available RSS feeds are:
+    - AI news: Use "AI news" as the url parameter for TechCrunch's AI news feed
+    - Finance news: Use "Finance news" as the url parameter for Wall Street Journal's Markets feed
+    - US News: Use "US News" as the url parameter for New York Times' US news feed
+    - World News: Use "World News" as the url parameter for New York Times' World news feed
+
+    8. You can analyze Excel files using the excel_analysis tool. Use it when asked about data in uploaded Excel files.
+
+    9. If you think a user's question involves something in the future that hasn't happened yet, use the search tool.
+
+    Remember, building and using a comprehensive user profile over time is key to providing excellent assistance. Only search the web for queries that you cannot confidently answer based on your existing knowledge or the user's profile.
     """
     
     bedrock_client = create_bedrock_client(region_name)
@@ -79,7 +100,8 @@ def main():
     inference_config = {"temperature": 0.1}
     additional_model_fields = {"top_k": 200}
 
-    memory_manager = MemoryManager()  # Pe53b
+    with st.spinner("Initializing memory management. This may take a moment on first run..."):
+        memory_manager = MemoryManager()
 
     # Display chat messages
     for message in st.session_state.display_messages:

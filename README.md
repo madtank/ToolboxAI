@@ -55,6 +55,8 @@ ToolboxAI now includes a memory management feature using Chroma. This allows the
 
 These tools enhance the AI's ability to maintain context across conversations and provide more informed responses.
 
+### Note: On the first run, Chroma will download a pre-trained sentence transformer model (approximately 80MB). This is a one-time download and is necessary for the memory management feature to function properly. Subsequent runs will use the cached model.
+
 ## Prerequisites
 
 - Python 3.9+
