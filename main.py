@@ -1,11 +1,12 @@
 import streamlit as st
-from datetime import date
+from datetime import datetime
 from src.bedrock_client import create_bedrock_client
 from src.conversation_handler import handle_chat_input, process_ai_response
 from src.utils import new_chat, format_search_results, format_rss_results
 import random
 from PIL import Image
 import os
+from src.memory_manager import MemoryManager  # Pbdcb
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -30,7 +31,7 @@ def main():
         st.session_state.token_usage = None
 
     # File uploader for both images and documents
-    allowed_types = ["png", "jpg", "jpeg", "webp", "pdf", "csv", "doc", "docx", "xls", "xlsx", "html", "txt", "md"]
+    allowed_types = ["png", "jpg", "jpeg", "webp", "pdf", "csv", "doc", "docx", "xls", "xlsx", "html", "txt", "md", "py"]
     uploaded_file = st.file_uploader("Upload an image or document", type=allowed_types, key=f"uploader_{st.session_state['uploader_key']}")
 
     # Sidebar elements
@@ -60,23 +61,28 @@ def main():
         st.sidebar.markdown(f"Output Tokens: {st.session_state.token_usage['outputTokens']}")
         st.sidebar.markdown(f"Total Tokens: {st.session_state.token_usage['totalTokens']}")
 
-    # System prompt and other configurations
+    # Get current date and time
+    current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     system_prompt = f"""
-    Answer questions using your existing knowledge when possible.
-    Use the search tool for queries you can't confidently answer or that involve future events (as of {date.today().strftime("%B %d %Y")}).
-    When using tools:
-    1. Check the function description for any suggested parameters or sources (e.g., specific RSS feeds for news).
-    2. Use exactly provided values for parameters when given.
-    3. Only ask about or provide values for required parameters.
-    4. Make multiple independent tool calls in a single block when possible.
-    You can analyze user-uploaded images.
-    Provide concise, accurate responses and ask for clarification if needed.
+    You are ToolboxAI, a personal AI assistant focused on personalized help.
+
+    ALWAYS start by using get_user_profile tool to retrieve latest user info.
+
+    If profile needs updating, ask user questions and use update_user_profile tool.
+
+    Current date/time: {current_datetime}
+
+    Use available tools for accurate, personalized responses based on user's profile and needs.
     """
     
     bedrock_client = create_bedrock_client(region_name)
     system_prompts = [{"text": system_prompt}]
     inference_config = {"temperature": 0.1}
     additional_model_fields = {"top_k": 200}
+
+    with st.spinner("Initializing memory management. This may take a moment on first run..."):
+        memory_manager = MemoryManager()
 
     # Display chat messages
     for message in st.session_state.display_messages:
@@ -86,15 +92,29 @@ def main():
                 st.image(message["image"], caption="Uploaded Image", width=300)
             elif "document" in message:
                 st.markdown(f"Document uploaded: {message['document']}")
+            
+            # Check if this message contains tool results
             if "tool_results" in message:
-                with st.expander(f"🔍 Tool Results: {message['tool_name']}", expanded=False):
-                    if message['tool_name'] == 'search':
-                        st.markdown(format_search_results(message["tool_results"]))
-                    elif message['tool_name'] == 'rss_feed':
-                        st.markdown(format_rss_results(message["tool_results"]))
+                tool_name = message.get('tool_name', 'unknown')
+                with st.expander(f"🔍 Tool Results: {tool_name}", expanded=False):
+                    if tool_name == 'search':
+                        try:
+                            formatted_results = format_search_results(message["tool_results"])
+                            st.markdown(formatted_results)
+                        except Exception as e:
+                            st.error(f"Error formatting search results: {str(e)}")
+                            st.json(message["tool_results"])  # Display raw results as fallback
+                    elif tool_name == 'rss_feed':
+                        try:
+                            formatted_results = format_rss_results(message["tool_results"])
+                            st.markdown(formatted_results)
+                        except Exception as e:
+                            st.error(f"Error formatting RSS results: {str(e)}")
+                            st.json(message["tool_results"])  # Display raw results as fallback
                     else:
-                        st.subheader("Input:")
-                        st.code(message["tool_input"])
+                        if "tool_input" in message:
+                            st.subheader("Input:")
+                            st.code(message["tool_input"])
                         st.subheader("Results:")
                         st.json(message["tool_results"])
 

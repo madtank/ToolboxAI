@@ -1,4 +1,5 @@
 import random
+import json
 import streamlit as st
 
 def new_chat():
@@ -28,29 +29,67 @@ def handle_tool_use(delta, tool_input_placeholder, full_tool_input, is_final=Tru
     return full_tool_input
 
 def format_search_results(results):
+    if isinstance(results, str):
+        try:
+            results = json.loads(results)
+        except json.JSONDecodeError:
+            return "Error: Search results are not in a valid format."
+
+    if not results or not isinstance(results, list):
+        return "No search results found or there was an error fetching the results."
+
     formatted_output = "Search Results:\n\n"
     for i, result in enumerate(results, 1):
-        title = result.get('title', 'No title')
-        href = result.get('href', '#')
-        body = result.get('body', 'No description available.')
-        
-        formatted_output += f"{i}. [{title}]({href})\n"
-        formatted_output += f"   {body}\n"
-        formatted_output += f"   URL: {href}\n\n"
+        if isinstance(result, dict):
+            title = result.get('title', 'No title')
+            href = result.get('href', '#')
+            body = result.get('body', 'No description available.')
+            
+            formatted_output += f"{i}. [{title}]({href})\n"
+            formatted_output += f"   {body}\n"
+            formatted_output += f"   URL: {href}\n\n"
+        else:
+            formatted_output += f"{i}. Unable to parse result\n\n"
     
     return formatted_output
 
 def format_rss_results(entries):
+    if isinstance(entries, str):
+        try:
+            entries = json.loads(entries)
+        except json.JSONDecodeError:
+            return "Error: RSS feed results are not in a valid format."
+
+    if not entries or not isinstance(entries, list):
+        return "No RSS feed entries found or there was an error fetching the feed."
+
     formatted_output = "RSS Feed Results:\n\n"
     for i, entry in enumerate(entries, 1):
-        title = entry.get('title', 'No title')
-        link = entry.get('link', '#')
-        published = entry.get('published', 'No publication date')
-        summary = entry.get('summary', 'No summary available.')
-        
-        formatted_output += f"{i}. [{title}]({link})\n"
-        formatted_output += f"   Published: {published}\n"
-        formatted_output += f"   Summary: {summary}\n"
-        formatted_output += f"   URL: {link}\n\n"
+        if isinstance(entry, dict):
+            title = entry.get('title', 'No title')
+            link = entry.get('link', '#')
+            published = entry.get('published', 'No publication date')
+            summary = entry.get('summary', 'No summary available.')
+            
+            formatted_output += f"{i}. [{title}]({link})\n"
+            formatted_output += f"   Published: {published}\n"
+            formatted_output += f"   Summary: {summary}\n"
+            formatted_output += f"   URL: {link}\n\n"
+        else:
+            formatted_output += f"{i}. Unable to parse entry\n\n"
     
     return formatted_output
+
+def format_memory_results(results):
+    if isinstance(results, str):
+        try:
+            results = json.loads(results)
+        except json.JSONDecodeError:
+            return results  # Return as-is if it's not JSON
+
+    if isinstance(results, dict):
+        return "\n".join(f"{key}: {value}" for key, value in results.items())
+    elif isinstance(results, list):
+        return "\n".join(str(item) for item in results)
+    else:
+        return str(results)

@@ -14,8 +14,19 @@ ToolboxAI is a Streamlit application that leverages the [AWS Bedrock Converse St
 - RSS feed parsing for up-to-date AI news
 - Support for multiple Claude 3 and 3.5 models (Haiku, Sonnet, Opus)
 - Flexible AWS region selection
+- Memory management for context retention across conversations
 
 With ToolboxAI, users can engage in rich, multimodal conversations that combine text-based queries, web information retrieval, visual/document content analysis, and the latest AI news from RSS feeds.
+
+## Token Usage and Optimization
+
+ToolboxAI now includes token usage tracking, allowing users to monitor the efficiency of their interactions. The system has been optimized for token efficiency:
+
+- Concise tool descriptions to reduce input token count
+- Efficient memory management using Chroma for context retention
+- Real-time token usage display in the sidebar
+
+Users can expect reasonable token usage even with complex tool integrations. For a simple interaction, typical usage might be around 1300-1500 total tokens, with the majority being input tokens due to system setup and tool definitions.
 
 ## Tool Use Demonstration
 
@@ -31,20 +42,27 @@ ToolboxAI supports both image and document uploads, allowing for more diverse an
 - **AI Content Analysis**: The AI can analyze and comment on uploaded files, providing insights and descriptions.
 - **Flexible Format Support**: 
   - Images: PNG, JPG, JPEG, WebP
-
-<img src="assets/image_upload.png" alt="Image Upload Feature" width="600"/>
-
   - Documents: PDF, CSV, DOC, DOCX, XLS, XLSX, HTML, TXT, MD
-
-<img src="assets/file_upload.png" alt="File Upload Feature" width="600"/>
 
 ## RSS Feed Integration
 
-ToolboxAI now includes RSS feed parsing capabilities, allowing users to fetch and interact with the latest AI news:
+ToolboxAI includes RSS feed parsing capabilities, allowing users to fetch and interact with the latest AI news:
 
-- **AI News Updates**: The AI can fetch and summarize recent AI news from TechCrunch's AI RSS feed.
-- **Contextual Responses**: The AI integrates RSS feed information into its responses, providing up-to-date context for AI-related queries.
+- **AI News Updates**: The AI can fetch and summarize recent AI news from predefined RSS feeds.
+- **Contextual Responses**: The AI integrates RSS feed information into its responses, providing up-to-date context for queries.
 - **Expandable Feed Results**: Users can view detailed RSS feed results in an expandable section within the chat interface.
+
+## Memory Management
+
+ToolboxAI includes a memory management feature using Chroma, allowing the AI to save and recall important information across conversations:
+
+- `save_memory`: Saves important information for future recall.
+- `recall_memories`: Retrieves relevant memories based on a query.
+- `update_memory`: Modifies existing memories.
+- `delete_memory`: Removes specific memories.
+- `list_all_memories`: Provides an overview of stored information.
+
+### Note: On the first run, Chroma will download a pre-trained sentence transformer model (approximately 80MB). This is a one-time download and is necessary for the memory management feature to function properly. Subsequent runs will use the cached model.
 
 ## Prerequisites
 
@@ -76,24 +94,6 @@ streamlit run main.py
 ```
 
 This command starts the Streamlit server and opens the application in your default web browser.
-
-## Using RSS Feed Functionality
-
-To use the RSS feed feature:
-1. Ask the AI about recent AI news or developments.
-2. The AI will automatically use the RSS feed tool to fetch the latest articles from TechCrunch's AI feed.
-3. The AI will summarize the news and provide links to the full articles.
-4. You can expand the tool results to see more details about the fetched RSS entries.
-
-## Application Structure
-
-ToolboxAI consists of five main components:
-
-1. `main.py`: Streamlit UI and main application loop
-2. `src/bedrock_client.py`: AWS Bedrock service interactions
-3. `src/conversation_handler.py`: AI response processing and conversation flow management
-4. `src/utils.py`: Utility functions for various application needs, including RSS feed result formatting
-5. `src/tools.py`: Tool-related functions and configurations for web search, scraping, and RSS feed parsing
 
 ## Customization
 

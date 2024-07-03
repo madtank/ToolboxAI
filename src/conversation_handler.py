@@ -2,10 +2,13 @@ import streamlit as st
 import json
 from botocore.exceptions import ClientError
 from src.bedrock_client import get_stream, stream_conversation
-from src.utils import handle_chat_output, handle_tool_use
+from src.utils import handle_chat_output, handle_tool_use, format_memory_results
 from src.tools import toolConfig, process_tool_call
 import os
 import base64
+import logging
+
+logger = logging.getLogger(__name__)
 
 def handle_chat_input(prompt, file_content=None, file_name=None):
     user_message = {"role": "user", "content": [{"text": prompt}]}
@@ -75,7 +78,7 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                     system_prompts, 
                     inference_config, 
                     additional_model_fields,
-                    toolConfig  # Add this line
+                    toolConfig
                 )
                 for event in stream_conversation(stream):
                     if 'contentBlockStart' in event:
@@ -101,20 +104,42 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                             # Process tool use
                             if full_response:
                                 assistant_message["content"].append({"text": full_response})
+                            
+                            tool_input_json = {}
+                            if full_tool_input:
+                                try:
+                                    tool_input_json = json.loads(full_tool_input)
+                                except json.JSONDecodeError as e:
+                                    logger.error(f"Error parsing tool input JSON: {e}")
+                                    logger.error(f"Full tool input: {full_tool_input}")
+                                    tool_input_json = {"error": "Invalid JSON input"}
+                            
                             assistant_message["content"].append({
                                 "toolUse": {
                                     "toolUseId": tool_id,
                                     "name": tool_name,
-                                    "input": json.loads(full_tool_input)
+                                    "input": tool_input_json
                                 }
                             })
                             message_placeholder.markdown(full_response)
                             tool_input_placeholder.markdown(f"Tool input: {full_tool_input}")
 
-                            tool_results = process_tool_call(tool_name, json.loads(full_tool_input))
+                            try:
+                                tool_results = process_tool_call(tool_name, tool_input_json)
+                                tool_results_json = json.loads(tool_results)
+                            except json.JSONDecodeError as e:
+                                logger.error(f"Error decoding tool results JSON: {e}")
+                                tool_results_json = {"error": "Invalid tool results format"}
+
                             # Display tool results in an expander
                             with st.expander(f"🔍 Tool Results: {tool_name}", expanded=False):
-                                st.json(tool_results)
+                                if "error" in tool_results_json:
+                                    st.error(tool_results_json["error"])
+                                else:
+                                    if tool_name in ["save_memory", "recall_memories", "update_memory", "delete_memory", "get_user_profile", "list_all_memories"]:
+                                        st.markdown(format_memory_results(tool_results_json["result"]))
+                                    else:
+                                        st.json(tool_results_json["result"])
 
                             # Add assistant message and tool result as separate messages
                             messages.append(assistant_message)
@@ -146,7 +171,6 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                             full_tool_input = ""
                             full_response = ""  # Reset full_response for potential continued assistant response
                             assistant_message = {"role": "assistant", "content": []}  # Reset for potential next response
-
                         else:
                             # Final message stop
                             if full_response:
@@ -178,5 +202,21 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
             except ClientError as err:
                 message = err.response['Error']['Message']
                 st.error(f"A client error occurred: {message}")
-                print(f"A client error occurred: {message}")
+                logger.error(f"A client error occurred: {message}")
                 st.stop()
+                return  # Exit the function on error
+            except Exception as e:
+                st.error(f"An unexpected error occurred: {str(e)}")
+                logger.error(f"An unexpected error occurred: {str(e)}", exc_info=True)
+                st.stop()
+                return  # Exit the function on error
+
+def update_display_messages(role, content, tool_name=None, tool_input=None, tool_results=None):
+    message = {"role": role, "content": content}
+    if tool_name:
+        message["tool_name"] = tool_name
+    if tool_input is not None:
+        message["tool_input"] = tool_input
+    if tool_results is not None:
+        message["tool_results"] = tool_results
+    st.session_state.display_messages.append(message)
