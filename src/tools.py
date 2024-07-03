@@ -3,6 +3,9 @@ from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
 import feedparser
 from datetime import datetime
+from src.memory_manager import MemoryManager
+
+memory_manager = MemoryManager()
 
 def search_duckduckgo(query, region='wt-wt', safesearch='off', max_results=5):
     """Search DuckDuckGo (ddg) for the given query and return the results. This is for websearch, we need this for current information."""
@@ -48,6 +51,10 @@ def process_tool_call(tool_name, tool_input):
         return scrape_webpage(tool_input["url"])
     elif tool_name == "rss_feed":
         return fetch_rss_feed(tool_input["url"], tool_input.get("num_entries", 5))
+    elif tool_name == "save_memory":
+        return memory_manager.save_memory(tool_input["text"])
+    elif tool_name == "recall_memories":
+        return memory_manager.recall_memories(tool_input["query"])
 
 toolConfig = {
     'tools': [
@@ -106,6 +113,42 @@ toolConfig = {
                             }
                         },
                         'required': ['url']
+                    }
+                }
+            }
+        },
+        {
+            'toolSpec': {
+                'name': 'save_memory',
+                'description': 'Save an important piece of information for later recall. Use this when you encounter information that might be useful in future conversations.',
+                'inputSchema': {
+                    'json': {
+                        'type': 'object',
+                        'properties': {
+                            'text': {
+                                'type': 'string',
+                                'description': 'The text to save as a memory.'
+                            }
+                        },
+                        'required': ['text']
+                    }
+                }
+            }
+        },
+        {
+            'toolSpec': {
+                'name': 'recall_memories',
+                'description': 'Recall relevant memories based on a query. Use this at the start of conversations or when you need to retrieve previously saved information.',
+                'inputSchema': {
+                    'json': {
+                        'type': 'object',
+                        'properties': {
+                            'query': {
+                                'type': 'string',
+                                'description': 'The query to search for in the saved memories.'
+                            }
+                        },
+                        'required': ['query']
                     }
                 }
             }

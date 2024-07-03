@@ -6,6 +6,7 @@ from src.utils import new_chat, format_search_results, format_rss_results
 import random
 from PIL import Image
 import os
+from src.memory_manager import MemoryManager  # Pbdcb
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -77,6 +78,8 @@ def main():
     system_prompts = [{"text": system_prompt}]
     inference_config = {"temperature": 0.1}
     additional_model_fields = {"top_k": 200}
+
+    memory_manager = MemoryManager()  # Pe53b
 
     # Display chat messages
     for message in st.session_state.display_messages:

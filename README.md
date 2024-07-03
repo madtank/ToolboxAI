@@ -46,6 +46,15 @@ ToolboxAI now includes RSS feed parsing capabilities, allowing users to fetch an
 - **Contextual Responses**: The AI integrates RSS feed information into its responses, providing up-to-date context for AI-related queries.
 - **Expandable Feed Results**: Users can view detailed RSS feed results in an expandable section within the chat interface.
 
+## Memory Management
+
+ToolboxAI now includes a memory management feature using Chroma. This allows the AI to save important information from conversations and recall it later. The AI can use two new tools:
+
+- `save_memory`: Saves important information for future recall.
+- `recall_memories`: Retrieves relevant memories based on a query.
+
+These tools enhance the AI's ability to maintain context across conversations and provide more informed responses.
+
 ## Prerequisites
 
 - Python 3.9+
