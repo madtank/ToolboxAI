@@ -17,8 +17,19 @@ def scrape_webpage(url):
     text = soup.get_text(separator='\n', strip=True)
     return text
 
-def fetch_rss_feed(url, num_entries=10):
-    """Fetch and parse an RSS feed, returning the specified number of latest entries."""
+def fetch_rss_feed(url, num_entries=5):
+    """
+    Fetch and parse an RSS feed, returning the specified number of latest entries.
+
+    You have access to an RSS feed tool that can fetch recent AI news from TechCrunch. Use it when asked about recent AI news or developments.
+    AI news: https://techcrunch.com/category/artificial-intelligence/feed/
+    Finance news: https://feeds.a.dj.com/rss/RSSMarketsMain.xml
+    US News: https://rss.nytimes.com/services/xml/rss/nyt/US.xml
+    World News: https://rss.nytimes.com/services/xml/rss/nyt/World.xml
+    Args:
+    url (str): The URL of the RSS feed to fetch.
+    num_entries (int, optional): The number of entries to return. Default is 5.
+    """
     feed = feedparser.parse(url)
     entries = []
     for entry in feed.entries[:num_entries]:
