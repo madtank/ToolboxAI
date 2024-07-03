@@ -2,7 +2,7 @@ import streamlit as st
 from datetime import date
 from src.bedrock_client import create_bedrock_client
 from src.conversation_handler import handle_chat_input, process_ai_response
-from src.utils import new_chat, format_search_results
+from src.utils import new_chat, format_search_results, format_rss_results
 import random
 from PIL import Image
 import os
@@ -66,6 +66,8 @@ def main():
     Today's date is {date.today().strftime("%B %d %Y")}
     If you think a user's question involves something in the future that hasn't happened yet, use the search tool.
     You can also analyze images that the user uploads.
+    You have access to an RSS feed tool that can fetch recent AI news from TechCrunch. Use it when asked about recent AI news or developments.
+    The RSS feed URL for AI news is: https://techcrunch.com/category/artificial-intelligence/feed/
     """
     
     bedrock_client = create_bedrock_client(region_name)
@@ -85,6 +87,8 @@ def main():
                 with st.expander(f"🔍 Tool Results: {message['tool_name']}", expanded=False):
                     if message['tool_name'] == 'search':
                         st.markdown(format_search_results(message["tool_results"]))
+                    elif message['tool_name'] == 'rss_feed':
+                        st.markdown(format_rss_results(message["tool_results"]))
                     else:
                         st.subheader("Input:")
                         st.code(message["tool_input"])

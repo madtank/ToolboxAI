@@ -5,3 +5,4 @@ duckduckgo_search
 requests>=2.32.3
 bs4>=0.0.2
 pillow>=10.3.0
+feedparser>=6.0.0

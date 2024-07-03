@@ -1,6 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
+import feedparser
+from datetime import datetime
 
 def search_duckduckgo(query, region='wt-wt', safesearch='off', max_results=5):
     """Search DuckDuckGo (ddg) for the given query and return the results. This is for websearch, we need this for current information."""
@@ -15,11 +17,26 @@ def scrape_webpage(url):
     text = soup.get_text(separator='\n', strip=True)
     return text
 
+def fetch_rss_feed(url, num_entries=10):
+    """Fetch and parse an RSS feed, returning the specified number of latest entries."""
+    feed = feedparser.parse(url)
+    entries = []
+    for entry in feed.entries[:num_entries]:
+        entries.append({
+            'title': entry.title,
+            'link': entry.link,
+            'published': entry.published,
+            'summary': entry.summary
+        })
+    return entries
+
 def process_tool_call(tool_name, tool_input):
     if tool_name == "search":
         return search_duckduckgo(tool_input["query"])
     elif tool_name == "webscrape":
         return scrape_webpage(tool_input["url"])
+    elif tool_name == "rss_feed":
+        return fetch_rss_feed(tool_input["url"], tool_input.get("num_entries", 5))
 
 toolConfig = {
     'tools': [
@@ -52,6 +69,29 @@ toolConfig = {
                             'url': {
                                 'type': 'string',
                                 'description': 'The URL of the webpage to scrape. This should be a fully qualified URL, including the http:// or https:// prefix.'
+                            }
+                        },
+                        'required': ['url']
+                    }
+                }
+            }
+        },
+        {
+            'toolSpec': {
+                'name': 'rss_feed',
+                'description': 'This tool fetches and parses an RSS feed, returning the latest entries. It can be used to get recent news or updates from various sources.',
+                'inputSchema': {
+                    'json': {
+                        'type': 'object',
+                        'properties': {
+                            'url': {
+                                'type': 'string',
+                                'description': 'The URL of the RSS feed to fetch.'
+                            },
+                            'num_entries': {
+                                'type': 'integer',
+                                'description': 'The number of entries to return. Default is 5.',
+                                'default': 5
                             }
                         },
                         'required': ['url']
