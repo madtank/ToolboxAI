@@ -2,7 +2,7 @@ import streamlit as st
 from datetime import date
 from src.bedrock_client import create_bedrock_client
 from src.conversation_handler import handle_chat_input, process_ai_response
-from src.utils import new_chat, format_search_results
+from src.utils import new_chat, format_search_results, format_rss_results
 import random
 from PIL import Image
 import os
@@ -38,10 +38,11 @@ def main():
 
     # Model selection
     models = [
+        {"name": "Claude 3.5 Sonnet", "id": "anthropic.claude-3-5-sonnet-20240620-v1:0"},
         {"name": "Claude 3 Haiku", "id": "anthropic.claude-3-haiku-20240307-v1:0"},
         {"name": "Claude 3 Sonnet", "id": "anthropic.claude-3-sonnet-20240229-v1:0"},
-        {"name": "Claude 3.5 Sonnet", "id": "anthropic.claude-3-5-sonnet-20240620-v1:0"},
-        {"name": "Claude 3 Opus", "id": "anthropic.claude-3-opus-20240229-v1:0"}
+        {"name": "Claude 3 Opus", "id": "anthropic.claude-3-opus-20240229-v1:0"},
+        {"name": "Command R+", "id": "cohere.command-r-plus-v1:0"}
     ]
     model_names = [model["name"] for model in models]
     selected_model_name = st.sidebar.selectbox("Select a model", model_names)
@@ -49,8 +50,8 @@ def main():
     model_id = next((model["id"] for model in models if model["name"] == selected_model_name), None)
 
     # AWS regions for dropdown
-    regions = ["us-west-2", "us-east-1"]
-    region_name = st.sidebar.selectbox("Select AWS Region", regions, index=regions.index("us-west-2"))
+    regions = ["us-east-1", "us-west-2"]
+    region_name = st.sidebar.selectbox("Select AWS Region", regions, index=regions.index("us-east-1"))
 
     # Display token usage if available
     if st.session_state.token_usage:
@@ -61,11 +62,15 @@ def main():
 
     # System prompt and other configurations
     system_prompt = f"""
-    Answer as many questions as you can using your existing knowledge.
-    Only search the web for queries that you can not confidently answer.
-    Today's date is {date.today().strftime("%B %d %Y")}
-    If you think a user's question involves something in the future that hasn't happened yet, use the search tool.
-    You can also analyze images that the user uploads.
+    Answer questions using your existing knowledge when possible.
+    Use the search tool for queries you can't confidently answer or that involve future events (as of {date.today().strftime("%B %d %Y")}).
+    When using tools:
+    1. Check the function description for any suggested parameters or sources (e.g., specific RSS feeds for news).
+    2. Use exactly provided values for parameters when given.
+    3. Only ask about or provide values for required parameters.
+    4. Make multiple independent tool calls in a single block when possible.
+    You can analyze user-uploaded images.
+    Provide concise, accurate responses and ask for clarification if needed.
     """
     
     bedrock_client = create_bedrock_client(region_name)
@@ -85,6 +90,8 @@ def main():
                 with st.expander(f"🔍 Tool Results: {message['tool_name']}", expanded=False):
                     if message['tool_name'] == 'search':
                         st.markdown(format_search_results(message["tool_results"]))
+                    elif message['tool_name'] == 'rss_feed':
+                        st.markdown(format_rss_results(message["tool_results"]))
                     else:
                         st.subheader("Input:")
                         st.code(message["tool_input"])

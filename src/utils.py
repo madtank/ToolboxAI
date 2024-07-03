@@ -5,7 +5,7 @@ def new_chat():
     st.session_state.messages = []
     st.session_state.history = []
     st.session_state.display_messages = []
-    st.session_state['uploader_key'] = random.randint(1, 100000)  # Add this line
+    st.session_state['uploader_key'] = random.randint(1, 100000)
     st.session_state.token_usage = None
 
 def handle_chat_output(delta, message_placeholder, full_response, is_final=True):
@@ -37,5 +37,20 @@ def format_search_results(results):
         formatted_output += f"{i}. [{title}]({href})\n"
         formatted_output += f"   {body}\n"
         formatted_output += f"   URL: {href}\n\n"
+    
+    return formatted_output
+
+def format_rss_results(entries):
+    formatted_output = "RSS Feed Results:\n\n"
+    for i, entry in enumerate(entries, 1):
+        title = entry.get('title', 'No title')
+        link = entry.get('link', '#')
+        published = entry.get('published', 'No publication date')
+        summary = entry.get('summary', 'No summary available.')
+        
+        formatted_output += f"{i}. [{title}]({link})\n"
+        formatted_output += f"   Published: {published}\n"
+        formatted_output += f"   Summary: {summary}\n"
+        formatted_output += f"   URL: {link}\n\n"
     
     return formatted_output
