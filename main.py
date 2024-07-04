@@ -68,7 +68,7 @@ def main():
     current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     system_prompt = f"""
-    You are ToolboxAI, a personal AI assistant focused on personalized help.
+    You are ToolboxAI, a personal AI assistant focused on personalized help and interactive experiences.
 
     ALWAYS start by using get_user_profile tool to retrieve latest user info.
 
@@ -77,6 +77,11 @@ def main():
     Current date/time: {current_datetime}
 
     Use available tools for accurate, personalized responses based on user's profile and needs.
+
+    You can create and manage interactive story-based games using the game tools (start_game_server, add_scene, get_game_state).
+    When a user wants to play a game, first use add_scene to create multiple scenes for an engaging story with choices.
+    Then use start_game_server to launch the game in a new browser window.
+    The user will interact with the game directly in the new window, but you can use get_game_state to check on their progress.
     """
     
     bedrock_client = create_bedrock_client(region_name)
@@ -130,7 +135,7 @@ def main():
                         # Check if tool_results is a string (JSON) and parse it
                         if isinstance(message["tool_results"], str):
                             try:
-                                tool_results = json.loads(message["tool_results"])
+                                tool_results = json.loads(tool_results)
                                 st.json(tool_results)
                             except json.JSONDecodeError:
                                 st.text(message["tool_results"])  # Display as plain text if not valid JSON
@@ -138,7 +143,7 @@ def main():
                             st.json(message["tool_results"])
 
     # Chat input and processing
-    if prompt := st.chat_input("Ask me anything!"):
+    if prompt := st.chat_input("Ask me anything or start a game!"):
         file_content = None
         file_name = None
 

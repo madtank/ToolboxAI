@@ -5,6 +5,9 @@ from duckduckgo_search import DDGS
 import feedparser
 from src.memory_manager import MemoryManager
 import logging
+from src.game_server import run_server
+import threading
+from src.interactive_game import game
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -104,6 +107,15 @@ def process_tool_call(tool_name, tool_input):
             return json.dumps({"result": memory_manager.get_user_profile()})
         elif tool_name == "list_all_memories":
             return json.dumps({"result": memory_manager.list_all_memories()})
+        elif tool_name == "start_game_server":
+            thread = threading.Thread(target=run_server)
+            thread.start()
+            return json.dumps({"result": "Game server started. A new browser window should open shortly."})
+        elif tool_name == "add_scene":
+            game.add_scene(tool_input["scene_id"], tool_input["description"], tool_input["choices"])
+            return json.dumps({"result": "Scene added successfully"})
+        elif tool_name == "get_game_state":
+            return json.dumps({"result": game.get_game_state()})
         else:
             logger.warning(f"Unknown tool: {tool_name}")
             return json.dumps({"error": f"Unknown tool: {tool_name}"})
@@ -306,6 +318,59 @@ toolConfig = {
             'toolSpec': {
                 'name': 'get_user_profile',
                 'description': 'Retrieve the complete user profile as stored in the system.',
+                'inputSchema': {
+                    'json': {
+                        'type': 'object',
+                        'properties': {}
+                    }
+                }
+            }
+        },
+        {
+            'toolSpec': {
+                'name': 'start_game_server',
+                'description': 'Start the game server and open a new browser window for the interactive game.',
+                'inputSchema': {
+                    'json': {
+                        'type': 'object',
+                        'properties': {}
+                    }
+                }
+            }
+        },
+        {
+            'toolSpec': {
+                'name': 'add_scene',
+                'description': 'Add a new scene to the game.',
+                'inputSchema': {
+                    'json': {
+                        'type': 'object',
+                        'properties': {
+                            'scene_id': {
+                                'type': 'string',
+                                'description': 'Unique identifier for the scene.'
+                            },
+                            'description': {
+                                'type': 'string',
+                                'description': 'Description of the scene.'
+                            },
+                            'choices': {
+                                'type': 'array',
+                                'items': {
+                                    'type': 'string'
+                                },
+                                'description': 'List of choices available in this scene.'
+                            }
+                        },
+                        'required': ['scene_id', 'description', 'choices']
+                    }
+                }
+            }
+        },
+        {
+            'toolSpec': {
+                'name': 'get_game_state',
+                'description': 'Get the current state of the game.',
                 'inputSchema': {
                     'json': {
                         'type': 'object',

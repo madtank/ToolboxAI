@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Game</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #game-container {
+            background-color: #f0f0f0;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        #choices {
+            margin-top: 20px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>Interactive Game</h1>
+        <div id="scene-description"></div>
+        <div id="choices"></div>
+    </div>
+
+    <script>
+        function updateGameState() {
+            $.getJSON('/game_state', function(data) {
+                $('#scene-description').text(data.description);
+                $('#choices').empty();
+                data.choices.forEach(function(choice) {
+                    $('#choices').append(`<button onclick="makeChoice('${choice}')">${choice}</button>`);
+                });
+            });
+        }
+
+        function makeChoice(choice) {
+            $.ajax({
+                url: '/make_choice',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({choice: choice}),
+                success: function(response) {
+                    updateGameState();
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            updateGameState();
+        });
+    </script>
+</body>
+</html>
