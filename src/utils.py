@@ -35,8 +35,11 @@ def format_search_results(results):
         except json.JSONDecodeError:
             return "Error: Search results are not in a valid format."
 
-    if not results or not isinstance(results, list):
-        return "No search results found or there was an error fetching the results."
+    if isinstance(results, dict) and 'result' in results:
+        results = results['result']
+
+    if not isinstance(results, list):
+        return "Error: Unexpected format for search results."
 
     formatted_output = "Search Results:\n\n"
     for i, result in enumerate(results, 1):
@@ -60,8 +63,11 @@ def format_rss_results(entries):
         except json.JSONDecodeError:
             return "Error: RSS feed results are not in a valid format."
 
-    if not entries or not isinstance(entries, list):
-        return "No RSS feed entries found or there was an error fetching the feed."
+    if isinstance(entries, dict) and 'result' in entries:
+        entries = entries['result']
+
+    if not isinstance(entries, list):
+        return "Error: Unexpected format for RSS feed results."
 
     formatted_output = "RSS Feed Results:\n\n"
     for i, entry in enumerate(entries, 1):

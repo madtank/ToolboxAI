@@ -99,6 +99,10 @@ This command starts the Streamlit server and opens the application in your defau
 
 Extend ToolboxAI's capabilities by modifying `src/tools.py`. You can add new RSS feeds or other tools by updating the `toolConfig` dictionary and adding corresponding functions.
 
+## Automated Tool Usage Tests by AI
+
+<img src="assets/tool_tests.png" alt="Tool Tests" width="700">
+
 ## Troubleshooting
 
 If you encounter issues:

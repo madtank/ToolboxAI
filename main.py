@@ -1,14 +1,17 @@
-import streamlit as st
+import json
+import logging
+import os
+import random
 from datetime import datetime
+
+import streamlit as st
+from PIL import Image
+
 from src.bedrock_client import create_bedrock_client
 from src.conversation_handler import handle_chat_input, process_ai_response
-from src.utils import new_chat, format_search_results, format_rss_results
-import random
-from PIL import Image
-import os
 from src.memory_manager import MemoryManager  # Pbdcb
+from src.utils import format_rss_results, format_search_results, new_chat
 
-import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -93,30 +96,46 @@ def main():
             elif "document" in message:
                 st.markdown(f"Document uploaded: {message['document']}")
             
-            # Check if this message contains tool results
-            if "tool_results" in message:
+            if message["role"] == "tool" and message.get("tool_results"):
                 tool_name = message.get('tool_name', 'unknown')
                 with st.expander(f"🔍 Tool Results: {tool_name}", expanded=False):
-                    if tool_name == 'search':
-                        try:
-                            formatted_results = format_search_results(message["tool_results"])
-                            st.markdown(formatted_results)
-                        except Exception as e:
-                            st.error(f"Error formatting search results: {str(e)}")
-                            st.json(message["tool_results"])  # Display raw results as fallback
-                    elif tool_name == 'rss_feed':
-                        try:
-                            formatted_results = format_rss_results(message["tool_results"])
-                            st.markdown(formatted_results)
-                        except Exception as e:
-                            st.error(f"Error formatting RSS results: {str(e)}")
-                            st.json(message["tool_results"])  # Display raw results as fallback
+                    try:
+                        tool_results = message["tool_results"]
+                        
+                        # Handle different tool types
+                        if tool_name == 'search':
+                            formatted_results = format_search_results(tool_results)
+                        elif tool_name == 'rss_feed':
+                            formatted_results = format_rss_results(tool_results)
+                        else:
+                            # For other tools, just display the raw results
+                            formatted_results = json.dumps(tool_results, indent=2)
+                        
+                        st.markdown(formatted_results)
+                        
+                        # Display tool input if available
+                        if "tool_input" in message:
+                            st.subheader("Input:")
+                            st.code(message["tool_input"])
+                    
+                    except Exception as e:
+                        st.error(f"Error formatting {tool_name} results: {str(e)}")
+                        st.json(message["tool_results"])  # Display raw results as fallback
+
                     else:
                         if "tool_input" in message:
                             st.subheader("Input:")
                             st.code(message["tool_input"])
                         st.subheader("Results:")
-                        st.json(message["tool_results"])
+                        # Check if tool_results is a string (JSON) and parse it
+                        if isinstance(message["tool_results"], str):
+                            try:
+                                tool_results = json.loads(message["tool_results"])
+                                st.json(tool_results)
+                            except json.JSONDecodeError:
+                                st.text(message["tool_results"])  # Display as plain text if not valid JSON
+                        else:
+                            st.json(message["tool_results"])
 
     # Chat input and processing
     if prompt := st.chat_input("Ask me anything!"):

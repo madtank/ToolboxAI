@@ -25,11 +25,15 @@ def scrape_webpage(url):
     text = soup.get_text(separator='\n', strip=True)
     return text
 
+# Predefined RSS feeds for different categories
+# Update the corresponding tool toolspec in the toolConfig dictionary
 RSS_FEEDS = {
     "AI news": "https://techcrunch.com/category/artificial-intelligence/feed/",
     "Finance news": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
     "US News": "https://rss.nytimes.com/services/xml/rss/nyt/US.xml",
-    "World News": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml"
+    "World News": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+    "Sci-Fi Movie News": "https://sciencefiction.com/category/movies/feed/",
+    "The Hollywood Reporter - Movie News": "https://www.hollywoodreporter.com/topic/movies/feed/"
 }
 
 def fetch_rss_feed(url, num_entries=5):
@@ -155,6 +159,8 @@ toolConfig = {
                 - "Finance news": Dow Jones Markets
                 - "US News": New York Times US news
                 - "World News": New York Times World news
+                - "Sci-Fi Movie News": ScienceFiction.com Sci-Fi movies
+                - "The Hollywood Reporter - Movie News": The Hollywood Reporter movies
                 Use for current events or recent developments in these areas.
                 ''',
                 'inputSchema': {
@@ -163,7 +169,7 @@ toolConfig = {
                         'properties': {
                             'url': {
                                 'type': 'string',
-                                'description': 'RSS feed key: "AI news", "Finance news", "US News", or "World News".'
+                                'description': 'RSS feed key: "AI news", "Finance news", "US News", "World News", "Sci-Fi Movie News", or "The Hollywood Reporter - Movie News".'
                             },
                             'num_entries': {
                                 'type': 'integer',

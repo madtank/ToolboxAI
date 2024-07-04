@@ -65,9 +65,6 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
             tool_id = None
             is_tool_use = False
             assistant_message = {"role": "assistant", "content": []}
-            input_tokens = 0
-            output_tokens = 0
-            total_tokens = 0
             token_usage_placeholder = st.sidebar.empty()
 
             try:
@@ -104,6 +101,7 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                             # Process tool use
                             if full_response:
                                 assistant_message["content"].append({"text": full_response})
+                                update_display_messages("assistant", full_response)
                             
                             tool_input_json = {}
                             if full_tool_input:
@@ -158,14 +156,8 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                             })
 
                             # Update display messages
-                            st.session_state.display_messages.append({"role": "assistant", "content": full_response})
-                            st.session_state.display_messages.append({
-                                "role": "tool", 
-                                "content": f"Tool used: {tool_name}",
-                                "tool_name": tool_name,
-                                "tool_input": full_tool_input,
-                                "tool_results": tool_results
-                            })
+                            update_display_messages("tool", f"Tool used: {tool_name}", tool_name, full_tool_input, tool_results)
+
                             tool_input_placeholder.empty()
                             is_tool_use = False
                             full_tool_input = ""
@@ -176,9 +168,8 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                             if full_response:
                                 assistant_message["content"].append({"text": full_response})
                                 message_placeholder.markdown(full_response)
+                                update_display_messages("assistant", full_response)
                             messages.append(assistant_message)
-                            # Update display messages
-                            st.session_state.display_messages.append({"role": "assistant", "content": full_response})
 
                     if 'metadata' in event:
                         metadata = event['metadata']
@@ -191,7 +182,7 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                             }
 
                             # Update the token usage in the sidebar
-                            token_usage_placeholder.markdown(f"**Usage Information:**\n- Input Tokens: {input_tokens}\n- Output Tokens: {output_tokens}\n- Total Tokens: {total_tokens}")
+                            token_usage_placeholder.markdown(f"**Usage Information:**\n- Input Tokens: {st.session_state.token_usage['inputTokens']}\n- Output Tokens: {st.session_state.token_usage['outputTokens']}\n- Total Tokens: {st.session_state.token_usage['totalTokens']}")
 
                 # Check whose turn it is next
                 if messages[-1]["role"] == "assistant":
@@ -212,11 +203,11 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                 return  # Exit the function on error
 
 def update_display_messages(role, content, tool_name=None, tool_input=None, tool_results=None):
-    message = {"role": role, "content": content}
-    if tool_name:
-        message["tool_name"] = tool_name
-    if tool_input is not None:
-        message["tool_input"] = tool_input
-    if tool_results is not None:
-        message["tool_results"] = tool_results
+    message = {
+        "role": role,
+        "content": content,
+        "tool_name": tool_name,
+        "tool_input": tool_input,
+        "tool_results": tool_results
+    }
     st.session_state.display_messages.append(message)
