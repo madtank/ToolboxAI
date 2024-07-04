@@ -158,14 +158,9 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                             })
 
                             # Update display messages
-                            st.session_state.display_messages.append({"role": "assistant", "content": full_response})
-                            st.session_state.display_messages.append({
-                                "role": "tool", 
-                                "content": f"Tool used: {tool_name}",
-                                "tool_name": tool_name,
-                                "tool_input": full_tool_input,
-                                "tool_results": tool_results
-                            })
+                            update_display_messages("assistant", full_response)
+                            if tool_name:
+                                update_display_messages("tool", f"Tool used: {tool_name}", tool_name, full_tool_input, tool_results)
                             tool_input_placeholder.empty()
                             is_tool_use = False
                             full_tool_input = ""
@@ -178,7 +173,7 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                                 message_placeholder.markdown(full_response)
                             messages.append(assistant_message)
                             # Update display messages
-                            st.session_state.display_messages.append({"role": "assistant", "content": full_response})
+                            update_display_messages("assistant", full_response)
 
                     if 'metadata' in event:
                         metadata = event['metadata']
@@ -212,11 +207,11 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                 return  # Exit the function on error
 
 def update_display_messages(role, content, tool_name=None, tool_input=None, tool_results=None):
-    message = {"role": role, "content": content}
-    if tool_name:
-        message["tool_name"] = tool_name
-    if tool_input is not None:
-        message["tool_input"] = tool_input
-    if tool_results is not None:
-        message["tool_results"] = tool_results
+    message = {
+        "role": role,
+        "content": content,
+        "tool_name": tool_name,
+        "tool_input": tool_input,
+        "tool_results": tool_results
+    }
     st.session_state.display_messages.append(message)
