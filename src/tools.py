@@ -52,7 +52,8 @@ def fetch_rss_feed(url, num_entries=5):
         # Check if the url is a key in our RSS_FEEDS dictionary
         if url in RSS_FEEDS:
             url = RSS_FEEDS[url]
-
+        # If it's not in RSS_FEEDS, assume it's a direct URL
+        
         logger.info(f"Fetching RSS feed from: {url}")
         feed = feedparser.parse(url)
 
@@ -154,14 +155,16 @@ toolConfig = {
             'toolSpec': {
                 'name': 'rss_feed',
                 'description': '''
-                Fetch latest entries from predefined RSS feeds. Available options:
+                Fetch latest entries from RSS feeds. You can use predefined feed keys or provide a custom RSS feed URL.
+                Predefined options:
                 - "AI news": TechCrunch AI category
                 - "Finance news": Dow Jones Markets
                 - "US News": New York Times US news
                 - "World News": New York Times World news
                 - "Sci-Fi Movie News": ScienceFiction.com Sci-Fi movies
                 - "The Hollywood Reporter - Movie News": The Hollywood Reporter movies
-                Use for current events or recent developments in these areas.
+                For custom feeds, provide the full URL of the RSS feed.
+                Use for current events or recent developments in various areas.
                 ''',
                 'inputSchema': {
                     'json': {
@@ -169,7 +172,7 @@ toolConfig = {
                         'properties': {
                             'url': {
                                 'type': 'string',
-                                'description': 'RSS feed key: "AI news", "Finance news", "US News", "World News", "Sci-Fi Movie News", or "The Hollywood Reporter - Movie News".'
+                                'description': 'RSS feed key or full URL. For predefined feeds, use: "AI news", "Finance news", "US News", "World News", "Sci-Fi Movie News", or "The Hollywood Reporter - Movie News". For custom feeds, provide the full RSS feed URL.'
                             },
                             'num_entries': {
                                 'type': 'integer',
@@ -185,18 +188,18 @@ toolConfig = {
         {
             'toolSpec': {
                 'name': 'save_memory',
-                'description': 'Save important user info as a memory. Use for preferences, interests, or significant details shared during conversation.',
+                'description': 'Save specific user preferences, interests, or details shared during conversation. Use for information that doesn\'t belong in the basic user profile, such as favorite movies, books, or specific experiences.',
                 'inputSchema': {
                     'json': {
                         'type': 'object',
                         'properties': {
                             'text': {
                                 'type': 'string',
-                                'description': 'Specific info to save as a memory.'
+                                'description': 'Specific information to save as a memory.'
                             },
                             'metadata': {
                                 'type': 'object',
-                                'description': 'Optional metadata for the memory.'
+                                'description': 'Optional metadata for the memory, such as category (e.g., "movie preference", "book interest").'
                             }
                         },
                         'required': ['text']
@@ -286,30 +289,30 @@ toolConfig = {
         },
         {
             'toolSpec': {
-                'name': 'update_user_profile',
-                'description': 'Update user profile with new information about preferences, interests, or other key details.',
+                'name': 'get_user_profile',
+                'description': 'Retrieve basic user information like name, age, location, and general interests. Do not use for specific preferences or detailed information.',
                 'inputSchema': {
                     'json': {
                         'type': 'object',
-                        'properties': {
-                            'profile_data': {
-                                'type': 'string',
-                                'description': 'JSON string of user profile data to update.'
-                            }
-                        },
-                        'required': ['profile_data']
+                        'properties': {}
                     }
                 }
             }
         },
         {
             'toolSpec': {
-                'name': 'get_user_profile',
-                'description': 'Retrieve the complete user profile as stored in the system.',
+                'name': 'update_user_profile',
+                'description': 'Update basic user profile information like name, age, location, or general interests. Do not use for specific preferences or detailed information.',
                 'inputSchema': {
                     'json': {
                         'type': 'object',
-                        'properties': {}
+                        'properties': {
+                            'profile_data': {
+                                'type': 'string',
+                                'description': 'JSON string of basic user profile data to update (e.g., name, age, location, general interests).'
+                            }
+                        },
+                        'required': ['profile_data']
                     }
                 }
             }

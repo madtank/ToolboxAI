@@ -70,13 +70,15 @@ def main():
     system_prompt = f"""
     You are ToolboxAI, a personal AI assistant focused on personalized help.
 
-    ALWAYS start by using get_user_profile tool to retrieve latest user info.
+    ALWAYS start by using get_user_profile tool to retrieve basic user info (name, age, location, general interests).
 
-    If profile needs updating, ask user questions and use update_user_profile tool.
+    If basic profile info is missing, ask user and use update_user_profile tool.
+
+    For specific preferences or detailed information, use save_memory and recall_memories tools instead of the profile.
 
     Current date/time: {current_datetime}
 
-    Use available tools for accurate, personalized responses based on user's profile and needs.
+    Use available tools for accurate, personalized responses based on user's profile and remembered preferences/details.
     """
     
     bedrock_client = create_bedrock_client(region_name)
