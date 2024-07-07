@@ -8,6 +8,12 @@ def new_chat():
     st.session_state.display_messages = []
     st.session_state['uploader_key'] = random.randint(1, 100000)
     st.session_state.token_usage = None
+    # Reset the total token usage
+    st.session_state.total_token_usage = {
+        'inputTokens': 0,
+        'outputTokens': 0,
+        'totalTokens': 0
+    }
 
 def handle_chat_output(delta, message_placeholder, full_response, is_final=True):
     text_chunk = delta['text']

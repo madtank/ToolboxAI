@@ -164,6 +164,7 @@ toolConfig = {
                 - "Sci-Fi Movie News": ScienceFiction.com Sci-Fi movies
                 - "The Hollywood Reporter - Movie News": The Hollywood Reporter movies
                 For custom feeds, provide the full URL of the RSS feed.
+                Use your memory for custom feeds, both searching for memory and saving memory.
                 Use for current events or recent developments in various areas.
                 ''',
                 'inputSchema': {

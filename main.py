@@ -37,9 +37,6 @@ def main():
             'totalTokens': 0
         }
 
-    # Add a placeholder in the sidebar for the token usage
-    token_usage_placeholder = st.sidebar.empty()
-
     # File uploader for both images and documents
     allowed_types = ["png", "jpg", "jpeg", "webp", "pdf", "csv", "doc", "docx", "xls", "xlsx", "html", "txt", "md", "py"]
     uploaded_file = st.file_uploader("Upload an image or document", type=allowed_types, key=f"uploader_{st.session_state['uploader_key']}")
@@ -64,12 +61,19 @@ def main():
     regions = ["us-east-1", "us-west-2"]
     region_name = st.sidebar.selectbox("Select AWS Region", regions, index=regions.index("us-east-1"))
 
+    # Add a placeholder in the sidebar for the token usage
+    token_usage_placeholder = st.sidebar.empty()
+
     # Display total token usage
     if st.session_state.total_token_usage['totalTokens'] > 0:
-        token_usage_placeholder.markdown(f"### Total Token Usage\n"
-                                         f"Input Tokens: {st.session_state.total_token_usage['inputTokens']}\n"
-                                         f"Output Tokens: {st.session_state.total_token_usage['outputTokens']}\n"
-                                         f"Total Tokens: {st.session_state.total_token_usage['totalTokens']}")
+        token_usage_placeholder.markdown(
+            "**Total Token Usage**<br>"
+            f"Input Tokens: {st.session_state.total_token_usage['inputTokens']}<br>"
+            f"Output Tokens: {st.session_state.total_token_usage['outputTokens']}<br>"
+            f"Total Tokens: {st.session_state.total_token_usage['totalTokens']}",
+            unsafe_allow_html=True
+        )
+
 
     # Get current date and time
     current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -173,17 +177,19 @@ def main():
             # Process AI response
             updated_token_usage = process_ai_response(bedrock_client, model_id, st.session_state.history, system_prompts, inference_config, additional_model_fields)
             
-            # Update the total token usage
             if updated_token_usage:
                 st.session_state.total_token_usage['inputTokens'] += updated_token_usage['inputTokens']
                 st.session_state.total_token_usage['outputTokens'] += updated_token_usage['outputTokens']
                 st.session_state.total_token_usage['totalTokens'] += updated_token_usage['totalTokens']
                 
                 # Update the token usage display
-                token_usage_placeholder.markdown(f"### Total Token Usage\n"
-                                                 f"Input Tokens: {st.session_state.total_token_usage['inputTokens']}\n"
-                                                 f"Output Tokens: {st.session_state.total_token_usage['outputTokens']}\n"
-                                                 f"Total Tokens: {st.session_state.total_token_usage['totalTokens']}")
+                token_usage_placeholder.markdown(
+                    "**Total Token Usage**<br>"
+                    f"Input Tokens: {st.session_state.total_token_usage['inputTokens']}<br>"
+                    f"Output Tokens: {st.session_state.total_token_usage['outputTokens']}<br>"
+                    f"Total Tokens: {st.session_state.total_token_usage['totalTokens']}",
+                    unsafe_allow_html=True
+                )
 
             # Update the uploader key to reset the file uploader
             st.session_state['uploader_key'] = random.randint(1, 100000)
