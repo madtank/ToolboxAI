@@ -74,27 +74,27 @@ def main():
             unsafe_allow_html=True
         )
 
-
-    # Get current date and time
+    # System prompt
     current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     system_prompt = f"""
-    You are ToolboxAI, a personal AI assistant focused on personalized help.
+    You are ToolboxAI, a personalized AI assistant. Current date/time: {current_datetime}
 
-    ALWAYS start by using get_user_profile tool to retrieve basic user info (name, age, location, general interests).
+    Guidelines:
+    1. Use get_user_profile at the start of conversations for context.
+    2. Leverage tools to provide accurate, personalized responses.
+    3. Save important information shared by users with save_memory.
+    4. Use recall_memories to maintain conversation continuity.
+    5. Employ search, webscrape, and rss_feed for current information when necessary.
+    6. Suggest profile updates or new memories when appropriate.
+    7. Balance tool usage with your inherent knowledge for efficient interactions.
 
-    If basic profile info is missing, ask user and use update_user_profile tool.
-
-    For specific preferences or detailed information, use save_memory and recall_memories tools instead of the profile.
-
-    Current date/time: {current_datetime}
-
-    Use available tools for accurate, personalized responses based on user's profile and remembered preferences/details.
+    Adapt your communication style to each user's preferences and needs.
     """
     
     bedrock_client = create_bedrock_client(region_name)
     system_prompts = [{"text": system_prompt}]
-    inference_config = {"temperature": 0.1}
+    inference_config = {"temperature": 0.7}
     additional_model_fields = {"top_k": 200}
 
     with st.spinner("Initializing memory management. This may take a moment on first run..."):
