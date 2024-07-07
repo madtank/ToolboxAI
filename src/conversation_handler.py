@@ -55,6 +55,8 @@ def handle_chat_input(prompt, file_content=None, file_name=None):
     st.session_state.display_messages.append(display_message)
 
 def process_ai_response(bedrock_client, model_id, messages, system_prompts, inference_config, additional_model_fields):
+    turn_token_usage = {'inputTokens': 0, 'outputTokens': 0, 'totalTokens': 0}
+    
     while True:
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
@@ -175,19 +177,14 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                         metadata = event['metadata']
                         if 'usage' in metadata:
                             usage = metadata['usage']
-                            st.session_state.token_usage = {
-                                'inputTokens': usage.get('inputTokens', 0),
-                                'outputTokens': usage.get('outputTokens', 0),
-                                'totalTokens': usage.get('totalTokens', 0)
-                            }
-
-                            # Update the token usage in the sidebar
-                            token_usage_placeholder.markdown(f"**Usage Information:**\n- Input Tokens: {st.session_state.token_usage['inputTokens']}\n- Output Tokens: {st.session_state.token_usage['outputTokens']}\n- Total Tokens: {st.session_state.token_usage['totalTokens']}")
+                            turn_token_usage['inputTokens'] += usage.get('inputTokens', 0)
+                            turn_token_usage['outputTokens'] += usage.get('outputTokens', 0)
+                            turn_token_usage['totalTokens'] += usage.get('totalTokens', 0)
 
                 # Check whose turn it is next
                 if messages[-1]["role"] == "assistant":
-                    # If it's the user's turn, we return to main
-                    return
+                    # If it's the user's turn, we return to main with the updated token usage
+                    return turn_token_usage
                 # If it's the assistant's turn, the loop will continue
 
             except ClientError as err:
