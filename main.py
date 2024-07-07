@@ -9,7 +9,7 @@ from PIL import Image
 
 from src.bedrock_client import create_bedrock_client
 from src.conversation_handler import handle_chat_input, process_ai_response
-from src.memory_manager import MemoryManager  # Pbdcb
+from src.memory_manager import MemoryManager
 from src.utils import format_rss_results, format_search_results, new_chat
 
 logging.basicConfig(level=logging.INFO)
@@ -30,8 +30,15 @@ def main():
         st.session_state.display_messages = []
     if 'uploader_key' not in st.session_state:
         st.session_state['uploader_key'] = random.randint(1, 100000)
-    if "token_usage" not in st.session_state:
-        st.session_state.token_usage = None
+    if "total_token_usage" not in st.session_state:
+        st.session_state.total_token_usage = {
+            'inputTokens': 0,
+            'outputTokens': 0,
+            'totalTokens': 0
+        }
+
+    # Add a placeholder in the sidebar for the token usage
+    token_usage_placeholder = st.sidebar.empty()
 
     # File uploader for both images and documents
     allowed_types = ["png", "jpg", "jpeg", "webp", "pdf", "csv", "doc", "docx", "xls", "xlsx", "html", "txt", "md", "py"]
@@ -57,12 +64,12 @@ def main():
     regions = ["us-east-1", "us-west-2"]
     region_name = st.sidebar.selectbox("Select AWS Region", regions, index=regions.index("us-east-1"))
 
-    # Display token usage if available
-    if st.session_state.token_usage:
-        st.sidebar.markdown("### Token Usage")
-        st.sidebar.markdown(f"Input Tokens: {st.session_state.token_usage['inputTokens']}")
-        st.sidebar.markdown(f"Output Tokens: {st.session_state.token_usage['outputTokens']}")
-        st.sidebar.markdown(f"Total Tokens: {st.session_state.token_usage['totalTokens']}")
+    # Display total token usage
+    if st.session_state.total_token_usage['totalTokens'] > 0:
+        token_usage_placeholder.markdown(f"### Total Token Usage\n"
+                                         f"Input Tokens: {st.session_state.total_token_usage['inputTokens']}\n"
+                                         f"Output Tokens: {st.session_state.total_token_usage['outputTokens']}\n"
+                                         f"Total Tokens: {st.session_state.total_token_usage['totalTokens']}")
 
     # Get current date and time
     current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -164,7 +171,19 @@ def main():
             handle_chat_input(prompt, file_content, file_name)
 
             # Process AI response
-            process_ai_response(bedrock_client, model_id, st.session_state.history, system_prompts, inference_config, additional_model_fields)
+            updated_token_usage = process_ai_response(bedrock_client, model_id, st.session_state.history, system_prompts, inference_config, additional_model_fields)
+            
+            # Update the total token usage
+            if updated_token_usage:
+                st.session_state.total_token_usage['inputTokens'] += updated_token_usage['inputTokens']
+                st.session_state.total_token_usage['outputTokens'] += updated_token_usage['outputTokens']
+                st.session_state.total_token_usage['totalTokens'] += updated_token_usage['totalTokens']
+                
+                # Update the token usage display
+                token_usage_placeholder.markdown(f"### Total Token Usage\n"
+                                                 f"Input Tokens: {st.session_state.total_token_usage['inputTokens']}\n"
+                                                 f"Output Tokens: {st.session_state.total_token_usage['outputTokens']}\n"
+                                                 f"Total Tokens: {st.session_state.total_token_usage['totalTokens']}")
 
             # Update the uploader key to reset the file uploader
             st.session_state['uploader_key'] = random.randint(1, 100000)
