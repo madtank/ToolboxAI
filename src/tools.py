@@ -5,6 +5,7 @@ from duckduckgo_search import DDGS
 import feedparser
 from src.memory_manager import MemoryManager
 import logging
+from src.agent_tool import agent_tool
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -46,6 +47,8 @@ def process_tool_call(tool_name, tool_input):
             result = scrape_webpage(tool_input["url"])
         elif tool_name == "rss_feed":
             result = fetch_rss_feed(tool_input["url"], tool_input.get("num_entries", 5))
+        elif tool_name == "agent":
+            result = agent_tool(tool_input["query"])
         elif hasattr(memory_manager, tool_name):
             result = getattr(memory_manager, tool_name)(**tool_input)
         else:
@@ -156,7 +159,21 @@ toolConfig = {
                 }
             }
         },
-        # ... (other tools remain similar but with slightly refined descriptions)
+        {
+            'toolSpec': {
+                'name': 'agent',
+                'description': 'Use the Bedrock agent to perform complex tasks, answer questions, and provide information. This tool can handle a wide range of queries and tasks.',
+                'inputSchema': {
+                    'json': {
+                        'type': 'object',
+                        'properties': {
+                            'query': {'type': 'string', 'description': 'The query or task for the agent to process'}
+                        },
+                        'required': ['query']
+                    }
+                }
+            }
+        },
     ],
     'toolChoice': {'auto': {}}
 }

@@ -11,6 +11,7 @@ from src.bedrock_client import create_bedrock_client
 from src.conversation_handler import handle_chat_input, process_ai_response
 from src.memory_manager import MemoryManager
 from src.utils import format_rss_results, format_search_results, new_chat
+from src.agent_tool import agent_tool
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -55,7 +56,7 @@ def main():
     model_names = [model["name"] for model in models]
     selected_model_name = st.sidebar.selectbox("Select a model", model_names)
 
-    model_id = next((model["id"] for model in models if model["name"] == selected_model_name), None)
+    model_id = next((model["id"] for model in models if their["name"] == selected_model_name), None)
 
     # AWS regions for dropdown
     regions = ["us-east-1", "us-west-2"]
@@ -88,6 +89,13 @@ def main():
     5. Employ search, webscrape, and rss_feed for current information when necessary.
     6. Suggest profile updates or new memories when appropriate.
     7. Balance tool usage with your inherent knowledge for efficient interactions.
+    8. For complex tasks or queries that require advanced reasoning, use the 'agent' tool to leverage the Bedrock agent's capabilities.
+
+    When using the 'agent' tool, provide a clear and concise query. The agent can handle a wide range of tasks, including but not limited to:
+    - Answering complex questions
+    - Performing multi-step reasoning
+    - Accessing and analyzing knowledge bases
+    - Executing actions based on user intent
 
     Adapt your communication style to each user's preferences and needs.
     """
