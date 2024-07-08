@@ -12,6 +12,7 @@ from src.conversation_handler import handle_chat_input, process_ai_response
 from src.memory_manager import MemoryManager
 from src.utils import format_rss_results, format_search_results, new_chat
 from src.agent_tool import agent_tool
+from config import TEST_MODE, DEFAULT_REGION, TEST_AGENT_ID, TEST_AGENT_ALIAS_ID
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -56,11 +57,24 @@ def main():
     model_names = [model["name"] for model in models]
     selected_model_name = st.sidebar.selectbox("Select a model", model_names)
 
-    model_id = next((model["id"] for model in models if their["name"] == selected_model_name), None)
+    model_id = next((model["id"] for model in models if model["name"] == selected_model_name), None)
 
     # AWS regions for dropdown
     regions = ["us-east-1", "us-west-2"]
     region_name = st.sidebar.selectbox("Select AWS Region", regions, index=regions.index("us-east-1"))
+
+    st.sidebar.subheader("Agent Settings")
+    if TEST_MODE:
+        st.session_state.region_name = DEFAULT_REGION
+        st.session_state.agent_id = TEST_AGENT_ID
+        st.session_state.agent_alias_id = TEST_AGENT_ALIAS_ID
+        st.sidebar.info(f"Using test values: Region: {DEFAULT_REGION}, Agent ID: {TEST_AGENT_ID}, Agent Alias ID: {TEST_AGENT_ALIAS_ID}")
+    else:
+        st.session_state.region_name = st.sidebar.selectbox("Select AWS Region", regions, index=regions.index(DEFAULT_REGION))
+        st.session_state.agent_id = st.sidebar.text_input("Agent ID", value=TEST_AGENT_ID)
+        st.session_state.agent_alias_id = st.sidebar.text_input("Agent Alias ID", value=TEST_AGENT_ALIAS_ID)
+
+
 
     # Add a placeholder in the sidebar for the token usage
     token_usage_placeholder = st.sidebar.empty()

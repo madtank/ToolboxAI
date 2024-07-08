@@ -3,9 +3,10 @@ import boto3
 import json
 from botocore.exceptions import ClientError
 import uuid
+from config import TEST_MODE, DEFAULT_REGION, TEST_AGENT_ID, TEST_AGENT_ALIAS_ID
 
 def create_agents_for_bedrock_client(region):
-    return boto3.client(service_name='bedrock-runtime', region_name=region)
+    return boto3.client(service_name='bedrock-agent-runtime', region_name=region)
 
 def invoke_agent(client, agent_id, agent_alias_id, input_text, session_id):
     try:
@@ -54,9 +55,11 @@ def format_agent_response(result, citations):
     return formatted_result
 
 def agent_tool(input_text):
-    client = create_agents_for_bedrock_client(st.session_state.region_name)
-    agent_id = st.session_state.agent_id
-    agent_alias_id = st.session_state.agent_alias_id
+    region = DEFAULT_REGION if TEST_MODE else st.session_state.get('region_name', DEFAULT_REGION)
+    agent_id = TEST_AGENT_ID if TEST_MODE else st.session_state.get('agent_id', TEST_AGENT_ID)
+    agent_alias_id = TEST_AGENT_ALIAS_ID if TEST_MODE else st.session_state.get('agent_alias_id', TEST_AGENT_ALIAS_ID)
+    
+    client = create_agents_for_bedrock_client(region)
     
     if 'agent_session_id' not in st.session_state:
         st.session_state.agent_session_id = str(uuid.uuid4())
