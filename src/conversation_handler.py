@@ -105,14 +105,7 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                                 assistant_message["content"].append({"text": full_response})
                                 update_display_messages("assistant", full_response)
                             
-                            tool_input_json = {}
-                            if full_tool_input:
-                                try:
-                                    tool_input_json = json.loads(full_tool_input)
-                                except json.JSONDecodeError as e:
-                                    logger.error(f"Error parsing tool input JSON: {e}")
-                                    logger.error(f"Full tool input: {full_tool_input}")
-                                    tool_input_json = {"error": "Invalid JSON input"}
+                            tool_input_json = full_tool_input  # No need to parse JSON
                             
                             assistant_message["content"].append({
                                 "toolUse": {
@@ -124,22 +117,14 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                             message_placeholder.markdown(full_response)
                             tool_input_placeholder.markdown(f"Tool input: {full_tool_input}")
 
-                            try:
-                                tool_results = process_tool_call(tool_name, tool_input_json)
-                                tool_results_json = json.loads(tool_results)
-                            except json.JSONDecodeError as e:
-                                logger.error(f"Error decoding tool results JSON: {e}")
-                                tool_results_json = {"error": "Invalid tool results format"}
+                            tool_results = process_tool_call(tool_name, tool_input_json)
 
                             # Display tool results in an expander
                             with st.expander(f"🔍 Tool Results: {tool_name}", expanded=False):
-                                if "error" in tool_results_json:
-                                    st.error(tool_results_json["error"])
+                                if tool_name in ["save_memory", "recall_memories", "update_memory", "delete_memory", "get_user_profile", "list_all_memories"]:
+                                    st.markdown(format_memory_results(tool_results))
                                 else:
-                                    if tool_name in ["save_memory", "recall_memories", "update_memory", "delete_memory", "get_user_profile", "list_all_memories"]:
-                                        st.markdown(format_memory_results(tool_results_json["result"]))
-                                    else:
-                                        st.json(tool_results_json["result"])
+                                    st.markdown(tool_results)
 
                             # Add assistant message and tool result as separate messages
                             messages.append(assistant_message)

@@ -1,5 +1,4 @@
 import random
-import json
 import streamlit as st
 
 def new_chat():
@@ -35,15 +34,6 @@ def handle_tool_use(delta, tool_input_placeholder, full_tool_input, is_final=Tru
     return full_tool_input
 
 def format_search_results(results):
-    if isinstance(results, str):
-        try:
-            results = json.loads(results)
-        except json.JSONDecodeError:
-            return "Error: Search results are not in a valid format."
-
-    if isinstance(results, dict) and 'result' in results:
-        results = results['result']
-
     if not isinstance(results, list):
         return "Error: Unexpected format for search results."
 
@@ -63,15 +53,6 @@ def format_search_results(results):
     return formatted_output
 
 def format_rss_results(entries):
-    if isinstance(entries, str):
-        try:
-            entries = json.loads(entries)
-        except json.JSONDecodeError:
-            return "Error: RSS feed results are not in a valid format."
-
-    if isinstance(entries, dict) and 'result' in entries:
-        entries = entries['result']
-
     if not isinstance(entries, list):
         return "Error: Unexpected format for RSS feed results."
 
@@ -93,12 +74,6 @@ def format_rss_results(entries):
     return formatted_output
 
 def format_memory_results(results):
-    if isinstance(results, str):
-        try:
-            results = json.loads(results)
-        except json.JSONDecodeError:
-            return results  # Return as-is if it's not JSON
-
     if isinstance(results, dict):
         return "\n".join(f"{key}: {value}" for key, value in results.items())
     elif isinstance(results, list):

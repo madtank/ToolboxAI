@@ -1,5 +1,4 @@
 import requests
-import json
 from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
 import feedparser
@@ -42,17 +41,20 @@ def process_tool_call(tool_name, tool_input):
     try:
         if tool_name == "search":
             result = search_duckduckgo(tool_input["query"])
+            return format_search_results(result)
         elif tool_name == "webscrape":
             result = scrape_webpage(tool_input["url"])
+            return result
         elif tool_name == "rss_feed":
             result = fetch_rss_feed(tool_input["url"], tool_input.get("num_entries", 5))
+            return format_rss_results(result)
         elif hasattr(memory_manager, tool_name):
             result = getattr(memory_manager, tool_name)(**tool_input)
+            return format_memory_results(result)
         else:
-            return json.dumps({"error": f"Unknown tool: {tool_name}"})
-        return json.dumps({"result": result})
+            return f"Error: Unknown tool: {tool_name}"
     except Exception as e:
-        return json.dumps({"error": f"Error in {tool_name}: {str(e)}"})
+        return f"Error in {tool_name}: {str(e)}"
 
 toolConfig = {
     'tools': [
