@@ -5,6 +5,8 @@ from duckduckgo_search import DDGS
 import feedparser
 from src.memory_manager import MemoryManager
 import logging
+import re
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,6 +38,78 @@ def fetch_rss_feed(url, num_entries=5):
         logger.error(f"RSS feed error: {str(e)}")
         return None
 
+def initialize_prompt(new_prompt):
+    """Initialize a new prompt for the AI assistant."""
+    try:
+        # Parse the new_prompt to extract relevant settings
+        settings = parse_prompt_settings(new_prompt)
+        
+        # Update the system prompt
+        updated_prompt = f"""
+        You are ToolboxAI, a personalized AI assistant. Current date/time: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+        Guidelines:
+        1. Use get_user_profile at the start of conversations for context.
+        2. Leverage tools to provide accurate, personalized responses.
+        3. Save important information shared by users with save_memory.
+        4. Use recall_memories to maintain conversation continuity.
+        5. Employ search, webscrape, and rss_feed for current information when necessary.
+        6. Suggest profile updates or new memories when appropriate.
+        7. Balance tool usage with your inherent knowledge for efficient interactions.
+
+        {settings['custom_instructions']}
+
+        Adapt your communication style to each user's preferences and needs.
+        """
+        
+        # Update other settings
+        inference_config = {
+            "temperature": settings['temperature'],
+            "topP": settings['top_p'],
+            "maxTokens": settings['max_tokens']
+        }
+        
+        return {
+            "system_prompt": updated_prompt,
+            "inference_config": inference_config,
+            "message": "New prompt and settings initialized successfully."
+        }
+    except Exception as e:
+        return {"error": f"Error initializing new prompt: {str(e)}"}
+
+def parse_prompt_settings(prompt):
+    """Parse the natural language prompt to extract settings."""
+    # This is a simplified parser. In a real-world scenario, you might want to use
+    # more advanced NLP techniques or a dedicated parsing library.
+    settings = {
+        "custom_instructions": "",
+        "temperature": 0.7,
+        "top_p": 1.0,
+        "max_tokens": 1024
+    }
+    
+    # Extract custom instructions (everything before any specific setting mentions)
+    custom_instructions_match = re.match(r"(.*?)(?:Set temperature|Set top p|Set max tokens|$)", prompt, re.DOTALL | re.IGNORECASE)
+    if custom_instructions_match:
+        settings["custom_instructions"] = custom_instructions_match.group(1).strip()
+    
+    # Extract temperature
+    temp_match = re.search(r"Set temperature to (0\.\d+|\d+)", prompt, re.IGNORECASE)
+    if temp_match:
+        settings["temperature"] = float(temp_match.group(1))
+    
+    # Extract top_p
+    top_p_match = re.search(r"Set top p to (0\.\d+|\d+)", prompt, re.IGNORECASE)
+    if top_p_match:
+        settings["top_p"] = float(top_p_match.group(1))
+    
+    # Extract max_tokens
+    max_tokens_match = re.search(r"Set max tokens to (\d+)", prompt, re.IGNORECASE)
+    if max_tokens_match:
+        settings["max_tokens"] = int(max_tokens_match.group(1))
+    
+    return settings
+
 def process_tool_call(tool_name, tool_input):
     """Process tool calls."""
     logger.info(f"Tool call: {tool_name}")
@@ -46,6 +120,8 @@ def process_tool_call(tool_name, tool_input):
             result = scrape_webpage(tool_input["url"])
         elif tool_name == "rss_feed":
             result = fetch_rss_feed(tool_input["url"], tool_input.get("num_entries", 5))
+        elif tool_name == "initialize_prompt":
+            result = initialize_prompt(tool_input["new_prompt"])
         elif hasattr(memory_manager, tool_name):
             result = getattr(memory_manager, tool_name)(**tool_input)
         else:
@@ -156,7 +232,24 @@ toolConfig = {
                 }
             }
         },
-        # ... (other tools remain similar but with slightly refined descriptions)
+        {
+            'toolSpec': {
+                'name': 'initialize_prompt',
+                'description': 'Initialize a new prompt and adjust settings for the AI assistant. Use this to customize the assistant\'s behavior, style, or capabilities. You can set custom instructions and adjust parameters like temperature, top_p, and max_tokens.',
+                'inputSchema': {
+                    'json': {
+                        'type': 'object',
+                        'properties': {
+                            'new_prompt': {
+                                'type': 'string',
+                                'description': 'Natural language description of the new prompt and settings. Example: "Be more formal in your responses. Set temperature to 0.8 and max tokens to 2000."'
+                            }
+                        },
+                        'required': ['new_prompt']
+                    }
+                }
+            }
+        }
     ],
     'toolChoice': {'auto': {}}
 }

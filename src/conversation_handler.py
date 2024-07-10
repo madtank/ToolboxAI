@@ -199,6 +199,14 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                 st.stop()
                 return  # Exit the function on error
 
+            if tool_name == 'initialize_prompt':
+                if 'error' not in tool_results_json:
+                    system_prompts[0] = {"text": tool_results_json['system_prompt']}
+                    inference_config.update(tool_results_json['inference_config'])
+                    st.success(tool_results_json['message'])
+                else:
+                    st.error(tool_results_json['error'])
+
 def update_display_messages(role, content, tool_name=None, tool_input=None, tool_results=None):
     message = {
         "role": role,
