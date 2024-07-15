@@ -5,6 +5,7 @@ from duckduckgo_search import DDGS
 import feedparser
 from src.memory_manager import MemoryManager
 import logging
+from src.music_tool import process_music_tool
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -46,6 +47,8 @@ def process_tool_call(tool_name, tool_input):
             result = scrape_webpage(tool_input["url"])
         elif tool_name == "rss_feed":
             result = fetch_rss_feed(tool_input["url"], tool_input.get("num_entries", 5))
+        elif tool_name == "music_player":
+            result = process_music_tool(tool_input)
         elif hasattr(memory_manager, tool_name):
             result = getattr(memory_manager, tool_name)(**tool_input)
         else:
@@ -156,7 +159,33 @@ toolConfig = {
                 }
             }
         },
-        # ... (other tools remain similar but with slightly refined descriptions)
+        {
+            'toolSpec': {
+                'name': 'music_player',
+                'description': 'Generate and play musical elements including melodies, chord progressions, and rhythms.',
+                'inputSchema': {
+                    'json': {
+                        'type': 'object',
+                        'properties': {
+                            'key': {
+                                'type': 'string',
+                                'enum': ['C', 'G', 'F'],
+                                'description': 'The musical key'
+                            },
+                            'style': {
+                                'type': 'string',
+                                'enum': ['pop', 'blues', 'jazz'],
+                                'description': 'The musical style'
+                            },
+                            'length': {
+                                'type': 'integer',
+                                'description': 'The number of notes or chords to generate'
+                            }
+                        }
+                    }
+                }
+            }
+        }
     ],
     'toolChoice': {'auto': {}}
 }
