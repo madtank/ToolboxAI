@@ -54,7 +54,7 @@ def handle_chat_input(prompt, file_content=None, file_name=None):
     st.session_state.history.append(user_message)
     st.session_state.display_messages.append(display_message)
 
-def process_ai_response(bedrock_client, model_id, messages, system_prompts, inference_config, additional_model_fields):
+def process_ai_response(bedrock_client, model_id, messages, system_prompts, inference_config, additional_model_fields, updated_toolConfig):
     turn_token_usage = {'inputTokens': 0, 'outputTokens': 0, 'totalTokens': 0}
     
     while True:
@@ -77,7 +77,7 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                     system_prompts, 
                     inference_config, 
                     additional_model_fields,
-                    toolConfig
+                    updated_toolConfig
                 )
                 for event in stream_conversation(stream):
                     if 'contentBlockStart' in event:
