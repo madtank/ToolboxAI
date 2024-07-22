@@ -11,6 +11,8 @@ from src.bedrock_client import create_bedrock_client
 from src.conversation_handler import handle_chat_input, process_ai_response
 from src.memory_manager import MemoryManager
 from src.utils import format_rss_results, format_search_results, new_chat
+from src.personas import get_persona_names, get_tools_for_persona, get_system_prompt_for_persona
+from src.tools import get_dynamic_tool_config  # Import the new function
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,6 +38,8 @@ def main():
             'outputTokens': 0,
             'totalTokens': 0
         }
+    if "selected_persona" not in st.session_state:
+        st.session_state.selected_persona = "Personal Assistant"
 
     # File uploader for both images and documents
     allowed_types = ["png", "jpg", "jpeg", "webp", "pdf", "csv", "doc", "docx", "xls", "xlsx", "html", "txt", "md", "py"]
@@ -43,6 +47,14 @@ def main():
 
     # Sidebar elements
     st.sidebar.button("New Chat", type="primary", on_click=new_chat)
+
+    # Persona selection
+    persona_names = get_persona_names()
+    selected_persona = st.sidebar.selectbox("Select Persona", persona_names, index=persona_names.index(st.session_state.selected_persona))
+    
+    if selected_persona != st.session_state.selected_persona:
+        st.session_state.selected_persona = selected_persona
+        new_chat()  # Reset the chat when changing personas
 
     # Model selection
     models = [
@@ -75,27 +87,16 @@ def main():
         )
 
     # System prompt
-    current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    system_prompt = f"""
-    You are ToolboxAI, a personalized AI assistant. Current date/time: {current_datetime}
-
-    Guidelines:
-    1. Use get_user_profile at the start of conversations for context.
-    2. Leverage tools to provide accurate, personalized responses.
-    3. Save important information shared by users with save_memory.
-    4. Use recall_memories to maintain conversation continuity.
-    5. Employ search, webscrape, and rss_feed for current information when necessary.
-    6. Suggest profile updates or new memories when appropriate.
-    7. Balance tool usage with your inherent knowledge for efficient interactions.
-
-    Adapt your communication style to each user's preferences and needs.
-    """
+    system_prompt = get_system_prompt_for_persona(st.session_state.selected_persona)
     
     bedrock_client = create_bedrock_client(region_name)
     system_prompts = [{"text": system_prompt}]
     inference_config = {"temperature": 0.7}
     additional_model_fields = {"top_k": 200}
+
+    # Get dynamic toolConfig based on the selected persona
+    selected_tools = get_tools_for_persona(st.session_state.selected_persona)
+    dynamic_tool_config = get_dynamic_tool_config(selected_tools)
 
     with st.spinner("Initializing memory management. This may take a moment on first run..."):
         memory_manager = MemoryManager()
@@ -135,21 +136,6 @@ def main():
                         st.error(f"Error formatting {tool_name} results: {str(e)}")
                         st.json(message["tool_results"])  # Display raw results as fallback
 
-                    else:
-                        if "tool_input" in message:
-                            st.subheader("Input:")
-                            st.code(message["tool_input"])
-                        st.subheader("Results:")
-                        # Check if tool_results is a string (JSON) and parse it
-                        if isinstance(message["tool_results"], str):
-                            try:
-                                tool_results = json.loads(message["tool_results"])
-                                st.json(tool_results)
-                            except json.JSONDecodeError:
-                                st.text(message["tool_results"])  # Display as plain text if not valid JSON
-                        else:
-                            st.json(message["tool_results"])
-
     # Chat input and processing
     if prompt := st.chat_input("Ask me anything!"):
         file_content = None
@@ -175,8 +161,16 @@ def main():
             handle_chat_input(prompt, file_content, file_name)
 
             # Process AI response
-            updated_token_usage = process_ai_response(bedrock_client, model_id, st.session_state.history, system_prompts, inference_config, additional_model_fields)
-            
+            updated_token_usage = process_ai_response(
+                bedrock_client, 
+                model_id, 
+                st.session_state.history, 
+                system_prompts, 
+                inference_config, 
+                additional_model_fields, 
+                dynamic_tool_config  # Pass the dynamic_tool_config here
+            )
+
             if updated_token_usage:
                 st.session_state.total_token_usage['inputTokens'] += updated_token_usage['inputTokens']
                 st.session_state.total_token_usage['outputTokens'] += updated_token_usage['outputTokens']
