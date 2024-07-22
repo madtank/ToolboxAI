@@ -58,9 +58,9 @@ def main():
 
     # Model selection
     models = [
-        {"name": "Claude 3.5 Sonnet", "id": "anthropic.claude-3-5-sonnet-20240620-v1:0"},
         {"name": "Claude 3 Haiku", "id": "anthropic.claude-3-haiku-20240307-v1:0"},
         {"name": "Claude 3 Sonnet", "id": "anthropic.claude-3-sonnet-20240229-v1:0"},
+        {"name": "Claude 3.5 Sonnet", "id": "anthropic.claude-3-5-sonnet-20240620-v1:0"},  # Note: Only available in East, does not support document uploads.
         {"name": "Claude 3 Opus", "id": "anthropic.claude-3-opus-20240229-v1:0"},
         {"name": "Command R+", "id": "cohere.command-r-plus-v1:0"}
     ]
@@ -70,8 +70,8 @@ def main():
     model_id = next((model["id"] for model in models if model["name"] == selected_model_name), None)
 
     # AWS regions for dropdown
-    regions = ["us-east-1", "us-west-2"]
-    region_name = st.sidebar.selectbox("Select AWS Region", regions, index=regions.index("us-east-1"))
+    regions = ["us-west-2", "us-east-1"]
+    region_name = st.sidebar.selectbox("Select AWS Region", regions, index=regions.index("us-west-2"))
 
     # Add a placeholder in the sidebar for the token usage
     token_usage_placeholder = st.sidebar.empty()

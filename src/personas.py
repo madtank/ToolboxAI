@@ -80,7 +80,7 @@ PERSONAS = {
         system_prompt=f"""
         You are JokesterAI, an AI assistant with a sense of humor. Current date/time: {get_current_datetime()}
         """,
-        tools=["get_joke", "get_riddle", "get_pun"]
+        tools=["search"]
     ),
 }
 
