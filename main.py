@@ -12,6 +12,7 @@ from src.conversation_handler import handle_chat_input, process_ai_response
 from src.memory_manager import MemoryManager
 from src.utils import format_rss_results, format_search_results, new_chat
 from src.personas import get_persona_names, get_tools_for_persona, get_system_prompt_for_persona
+from src.tools import get_dynamic_tool_config  # Import the new function
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -86,20 +87,16 @@ def main():
         )
 
     # System prompt
-    current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    system_prompt = get_system_prompt_for_persona(st.session_state.selected_persona).format(current_datetime=current_datetime)
+    system_prompt = get_system_prompt_for_persona(st.session_state.selected_persona)
     
     bedrock_client = create_bedrock_client(region_name)
     system_prompts = [{"text": system_prompt}]
     inference_config = {"temperature": 0.7}
     additional_model_fields = {"top_k": 200}
 
-    # Update toolConfig based on the selected persona
+    # Get dynamic toolConfig based on the selected persona
     selected_tools = get_tools_for_persona(st.session_state.selected_persona)
-    updated_toolConfig = {
-        "tools": [tool for tool in toolConfig["tools"] if tool["toolSpec"]["name"] in selected_tools],
-        "toolChoice": toolConfig["toolChoice"]
-    }
+    dynamic_tool_config = get_dynamic_tool_config(selected_tools)
 
     with st.spinner("Initializing memory management. This may take a moment on first run..."):
         memory_manager = MemoryManager()
@@ -139,21 +136,6 @@ def main():
                         st.error(f"Error formatting {tool_name} results: {str(e)}")
                         st.json(message["tool_results"])  # Display raw results as fallback
 
-                    else:
-                        if "tool_input" in message:
-                            st.subheader("Input:")
-                            st.code(message["tool_input"])
-                        st.subheader("Results:")
-                        # Check if tool_results is a string (JSON) and parse it
-                        if isinstance(message["tool_results"], str):
-                            try:
-                                tool_results = json.loads(message["tool_results"])
-                                st.json(tool_results)
-                            except json.JSONDecodeError:
-                                st.text(message["tool_results"])  # Display as plain text if not valid JSON
-                        else:
-                            st.json(message["tool_results"])
-
     # Chat input and processing
     if prompt := st.chat_input("Ask me anything!"):
         file_content = None
@@ -179,8 +161,16 @@ def main():
             handle_chat_input(prompt, file_content, file_name)
 
             # Process AI response
-            updated_token_usage = process_ai_response(bedrock_client, model_id, st.session_state.history, system_prompts, inference_config, additional_model_fields, updated_toolConfig)
-            
+            updated_token_usage = process_ai_response(
+                bedrock_client, 
+                model_id, 
+                st.session_state.history, 
+                system_prompts, 
+                inference_config, 
+                additional_model_fields, 
+                dynamic_tool_config  # Pass the dynamic_tool_config here
+            )
+
             if updated_token_usage:
                 st.session_state.total_token_usage['inputTokens'] += updated_token_usage['inputTokens']
                 st.session_state.total_token_usage['outputTokens'] += updated_token_usage['outputTokens']
