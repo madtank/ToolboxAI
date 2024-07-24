@@ -61,8 +61,7 @@ def main():
         {"name": "Claude 3 Haiku", "id": "anthropic.claude-3-haiku-20240307-v1:0"},
         {"name": "Claude 3 Sonnet", "id": "anthropic.claude-3-sonnet-20240229-v1:0"},
         {"name": "Claude 3.5 Sonnet", "id": "anthropic.claude-3-5-sonnet-20240620-v1:0"},  # Note: Only available in East, does not support document uploads.
-        {"name": "Claude 3 Opus", "id": "anthropic.claude-3-opus-20240229-v1:0"},
-        {"name": "Command R+", "id": "cohere.command-r-plus-v1:0"}
+        {"name": "Claude 3 Opus", "id": "anthropic.claude-3-opus-20240229-v1:0"}
     ]
     model_names = [model["name"] for model in models]
     selected_model_name = st.sidebar.selectbox("Select a model", model_names)

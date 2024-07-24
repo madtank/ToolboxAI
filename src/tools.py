@@ -16,6 +16,7 @@ from src.finance_manager import (
     explain_financial_term,
     compare_financial_apps
 )
+from .python_repl import execute_python_code
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -83,6 +84,8 @@ def process_tool_call(tool_name, tool_input):
             result = explain_financial_term(tool_input["term"])
         elif tool_name == "compare_financial_apps":
             result = compare_financial_apps(tool_input["app1"], tool_input["app2"], tool_input["feature"])
+        elif tool_name == "execute_python_code":
+            result = execute_python_code(tool_input["code"])
         elif hasattr(memory_manager, tool_name):
             result = getattr(memory_manager, tool_name)(**tool_input)
         else:
@@ -286,6 +289,19 @@ ALL_TOOLS = {
                     'feature': {'type': 'string', 'description': 'Feature to compare'}
                 },
                 'required': ['app1', 'app2', 'feature']
+            }
+        }
+    },
+    'execute_python_code': {
+        'name': 'execute_python_code',
+        'description': 'Execute Python code and return the result, output, and any errors.',
+        'inputSchema': {
+            'json': {
+                'type': 'object',
+                'properties': {
+                    'code': {'type': 'string', 'description': 'Python code to execute'}
+                },
+                'required': ['code']
             }
         }
     }

@@ -20,7 +20,7 @@ def handle_chat_input(prompt, file_content=None, file_name=None):
     
     if file_content and file_name:
         name, ext = os.path.splitext(file_name)
-        file_format = ext.lstrip('.').toLowerCase()
+        file_format = ext.lstrip('.').lower()
         
         if file_format in ["png", "jpg", "jpeg", "webp"]:
             user_message["content"].append({
@@ -98,7 +98,8 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                             tool_use = start['toolUse']
                             tool_id = tool_use['toolUseId']
                             tool_name = tool_use['name']
-                            st.markdown(f"Using tool: {tool_name}")
+                            # # This is where the output is changing the display messages
+                            # st.markdown(f"Using tool: {tool_name}")
                             logger.debug(f"Tool use started: {tool_name}")
 
                     if 'contentBlockDelta' in event:
