@@ -17,6 +17,7 @@ from src.finance_manager import (
     compare_financial_apps
 )
 from .python_repl import execute_python_code
+import subprocess
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -58,6 +59,19 @@ def get_crypto_price(symbol):
     else:
         return None
 
+def execute_shell_command(command: str) -> str:
+    """Execute a shell command and return the input command and output."""
+    try:
+        result = subprocess.run(command, shell=True, check=True, text=True, capture_output=True)
+        output = result.stdout
+    except subprocess.CalledProcessError as e:
+        output = f"Error executing command: {e}\nStderr: {e.stderr}"
+    
+    return json.dumps({
+        "command": command,
+        "output": output
+    })
+
 def process_tool_call(tool_name, tool_input):
     """Process tool calls."""
     logger.info(f"Tool call: {tool_name}")
@@ -86,6 +100,8 @@ def process_tool_call(tool_name, tool_input):
             result = compare_financial_apps(tool_input["app1"], tool_input["app2"], tool_input["feature"])
         elif tool_name == "execute_python_code":
             result = execute_python_code(tool_input["code"])
+        elif tool_name == "execute_shell_command":
+            result = execute_shell_command(tool_input["command"])
         elif hasattr(memory_manager, tool_name):
             result = getattr(memory_manager, tool_name)(**tool_input)
         else:
@@ -302,6 +318,19 @@ ALL_TOOLS = {
                     'code': {'type': 'string', 'description': 'Python code to execute'}
                 },
                 'required': ['code']
+            }
+        }
+    },
+    'execute_shell_command': {
+        'name': 'execute_shell_command',
+        'description': 'Execute a shell command in the Docker environment. Returns both the input command and its output.',
+        'inputSchema': {
+            'json': {
+                'type': 'object',
+                'properties': {
+                    'command': {'type': 'string', 'description': 'The shell command to execute'}
+                },
+                'required': ['command']
             }
         }
     }
