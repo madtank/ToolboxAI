@@ -95,6 +95,48 @@ streamlit run main.py
 
 This command starts the Streamlit server and opens the application in your default web browser.
 
+## Deploying with Docker
+
+ToolboxAI can be deployed using Docker, which is recommended for security reasons as this AI has the capability to run Python code. Containerization provides an additional layer of isolation and security.
+
+### Building the Docker Image
+
+1. Ensure you have Docker installed on your system.
+2. Navigate to the root directory of the project where the Dockerfile is located.
+3. Build the Docker image with the following command:
+
+   ```
+   docker build -t toolboxai .
+   ```
+
+   This command builds the Docker image and tags it as 'toolboxai'.
+
+### Running the Docker Container
+
+To run the Docker container, you'll need to pass your AWS credentials as environment variables:
+
+```bash
+docker run -e AWS_ACCESS_KEY_ID=your_key -e AWS_SECRET_ACCESS_KEY=your_secret -p 8501:8501 toolboxai
+```
+
+Replace `your_key` and `your_secret` with your actual AWS credentials.
+
+### Accessing the Application
+
+Once the container is running, you can access the Streamlit app by opening a web browser and navigating to:
+
+```
+http://localhost:8501
+```
+
+### Important Security Notes
+
+- This AI has the capability to execute Python code. Running it in a Docker container provides an additional layer of security by isolating the application from your host system.
+- Never share your Docker image with your AWS credentials baked in.
+- Ensure your AWS credentials have the necessary permissions to access Bedrock services, but practice the principle of least privilege.
+- The `-p 8501:8501` flag maps port 8501 inside the container to port 8501 on your host machine. Adjust if needed for your security requirements.
+- Regularly update the base Docker image and dependencies to patch any security vulnerabilities.
+
 ## Customization
 
 Extend ToolboxAI's capabilities by modifying `src/tools.py`. You can add new RSS feeds or other tools by updating the `toolConfig` dictionary and adding corresponding functions.
