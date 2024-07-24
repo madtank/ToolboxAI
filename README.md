@@ -161,3 +161,40 @@ We welcome contributions to enhance ToolboxAI. Please follow the standard fork-a
 ## License
 
 ToolboxAI is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for full details.
+
+## `execute_shell_command` Function
+
+The `execute_shell_command` function allows the AI to execute shell commands within the Docker environment and return both the input command and its output in a structured format. This enhances transparency and makes it easier to understand what was executed and its results.
+
+### Function Definition
+
+```python
+import subprocess
+import json
+
+def execute_shell_command(command: str) -> str:
+    """Execute a shell command and return the input command and output."""
+    try:
+        result = subprocess.run(command, shell=True, check=True, text=True, capture_output=True)
+        output = result.stdout
+    except subprocess.CalledProcessError as e:
+        output = f"Error executing command: {e}\nStderr: {e.stderr}"
+    
+    return json.dumps({
+        "command": command,
+        "output": output
+    })
+```
+
+### Usage
+
+To use the `execute_shell_command` function, you can call it with the desired shell command as a string argument. The function will return a JSON string containing both the input command and its output.
+
+Example:
+
+```python
+command_result = execute_shell_command("ls -la")
+print(command_result)
+```
+
+This will execute the `ls -la` command and return the input command and its output in a structured JSON format.
