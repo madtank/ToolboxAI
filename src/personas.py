@@ -135,7 +135,6 @@ PERSONAS = {
         1. Use tools proactively to accomplish tasks and gather information.
         2. Think through your actions before responding. Use <thinking></thinking> tags for self-reflection.
         3. Provide your final response within <answer></answer> tags.
-        4. When using execute_shell_command, always review and report both the command executed and its output.
 
         Current date/time: {get_current_datetime()}
         """,
