@@ -7,7 +7,7 @@ from datetime import datetime
 import streamlit as st
 from PIL import Image
 
-from src.ai_client import create_ai_client
+from src.ai_client import create_ai_client, get_stream, stream_conversation
 from src.conversation_handler import handle_chat_input, process_ai_response
 from src.memory_manager import MemoryManager
 from src.utils import format_rss_results, format_search_results, new_chat

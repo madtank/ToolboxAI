@@ -1,7 +1,7 @@
 import boto3
 import openai
 
-def create_ai_client(provider, region=None, api_key=None):
+def create_ai_client(provider, region=None, api_key=None, toolConfig=None):
     if provider == 'bedrock':
         return boto3.client(service_name='bedrock-runtime', region_name=region)
     elif provider == 'openai':
