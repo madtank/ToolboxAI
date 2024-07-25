@@ -15,6 +15,7 @@ ToolboxAI is a Streamlit application that leverages the [AWS Bedrock Converse St
 - Support for multiple Claude 3 and 3.5 models (Haiku, Sonnet, Opus)
 - Flexible AWS region selection
 - Memory management for context retention across conversations
+- Support for Claude 3.x AI running in a containerized environment
 
 With ToolboxAI, users can engage in rich, multimodal conversations that combine text-based queries, web information retrieval, visual/document content analysis, and the latest AI news from RSS feeds.
 
