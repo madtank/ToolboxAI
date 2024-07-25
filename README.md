@@ -18,6 +18,14 @@ ToolboxAI is a Streamlit application that leverages the [AWS Bedrock Converse St
 
 With ToolboxAI, users can engage in rich, multimodal conversations that combine text-based queries, web information retrieval, visual/document content analysis, and the latest AI news from RSS feeds.
 
+## ToolboxAI Demo Video
+
+Check out this demonstration of ToolboxAI in action, featuring Claude 3.5 AI with its own computer environment:
+
+[![ToolboxAI Demo](https://img.youtube.com/vi/nAUPB70RMiw/0.jpg)](https://www.youtube.com/watch?v=nAUPB70RMiw)
+
+This video showcases the mind-blowing capabilities of Claude 3.5 AI running within its own container, demonstrating the power and flexibility of ToolboxAI.
+
 ## Token Usage and Optimization
 
 ToolboxAI now includes token usage tracking, allowing users to monitor the efficiency of their interactions. The system has been optimized for token efficiency:
