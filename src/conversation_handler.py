@@ -1,7 +1,7 @@
 import streamlit as st
 import json
 from botocore.exceptions import ClientError
-from src.bedrock_client import get_stream, stream_conversation
+from src.ai_client import get_stream, stream_conversation
 from src.utils import handle_chat_output, handle_tool_use, format_memory_results
 from src.tools import process_tool_call
 import os
@@ -58,7 +58,7 @@ def handle_chat_input(prompt, file_content=None, file_name=None):
     st.session_state.display_messages.append(display_message)
     logger.debug("Appended user message to session state")
 
-def process_ai_response(bedrock_client, model_id, messages, system_prompts, inference_config, additional_model_fields, dynamic_tool_config):
+def process_ai_response(ai_client, provider, model_id, messages, system_prompts, inference_config, additional_model_fields, dynamic_tool_config):
     logger.debug("Starting AI response processing")
     turn_token_usage = {'inputTokens': 0, 'outputTokens': 0, 'totalTokens': 0}
     
@@ -80,7 +80,8 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
 
             try:
                 stream = get_stream(
-                    bedrock_client, 
+                    ai_client, 
+                    provider,
                     model_id, 
                     messages, 
                     system_prompts, 
@@ -88,131 +89,155 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
                     additional_model_fields,
                     dynamic_tool_config
                 )
-                for event in stream_conversation(stream):
+                for event in stream_conversation(stream, provider):
                     logger.debug(f"Received event: {event}")
 
-                    if 'contentBlockStart' in event:
-                        start = event['contentBlockStart']['start']
-                        if 'toolUse' in start:
-                            is_tool_use = True
-                            tool_use = start['toolUse']
-                            tool_id = tool_use['toolUseId']
-                            tool_name = tool_use['name']
-                            # # This is where the output is changing the display messages
-                            # st.markdown(f"Using tool: {tool_name}")
-                            logger.debug(f"Tool use started: {tool_name}")
+                    if provider == 'bedrock':
+                        if 'contentBlockStart' in event:
+                            start = event['contentBlockStart']['start']
+                            if 'toolUse' in start:
+                                is_tool_use = True
+                                tool_use = start['toolUse']
+                                tool_id = tool_use['toolUseId']
+                                tool_name = tool_use['name']
+                                logger.debug(f"Tool use started: {tool_name}")
 
-                    if 'contentBlockDelta' in event:
-                        delta = event['contentBlockDelta']['delta']
-                        
-                        if 'text' in delta and not is_tool_use:
-                            text_chunk = delta['text']
-                            full_response += text_chunk
+                        if 'contentBlockDelta' in event:
+                            delta = event['contentBlockDelta']['delta']
                             
-                            if '<thinking' in text_chunk:
-                                is_thinking = True
-                                is_answering = False
-                            elif '<answer' in text_chunk:
-                                is_thinking = False
-                                is_answering = True
-                                answer_content = ""
-                            elif '</answer' in text_chunk:
-                                is_answering = False
-                            else:
-                                if text_chunk != ">":
-                                    is_answering = True
-                            
-                            if is_thinking:
-                                thinking_content += text_chunk
-                            elif is_answering:
-                                answer_content += text_chunk
+                            if 'text' in delta and not is_tool_use:
+                                text_chunk = delta['text']
+                                full_response += text_chunk
                                 
-                                clean_answer = re.sub(r'<answer>|</answer>', '', answer_content).strip()
-                                message_placeholder.markdown(clean_answer)
-                                logger.debug(f"Assistant response: {clean_answer}")
-    
-                        elif 'toolUse' in delta and is_tool_use:
-                            full_tool_input = handle_tool_use(delta, tool_input_placeholder, full_tool_input, False)
-                            logger.debug(f"Tool input: {full_tool_input}")
-
-                    elif 'messageStop' in event:
-                        if event['messageStop'].get('stopReason') == 'tool_use':
-                            if clean_answer:
-                                assistant_message["content"].append({"text": clean_answer})
-                                update_display_messages("assistant", clean_answer)
-                                logger.debug(f"Assistant message appended: {clean_answer}")
-                            
-                            tool_input_json = {}
-                            if full_tool_input:
-                                try:
-                                    tool_input_json = json.loads(full_tool_input)
-                                except json.JSONDecodeError as e:
-                                    logger.error(f"Error parsing tool input JSON: {e}")
-                                    logger.error(f"Full tool input: {full_tool_input}")
-                                    tool_input_json = {"error": "Invalid JSON input"}
-                            
-                            assistant_message["content"].append({
-                                "toolUse": {
-                                    "toolUseId": tool_id,
-                                    "name": tool_name,
-                                    "input": tool_input_json
-                                }
-                            })
-                            tool_input_placeholder.markdown(f"Tool input: {full_tool_input}")
-
-                            try:
-                                tool_results = process_tool_call(tool_name, tool_input_json)
-                                tool_results_json = json.loads(tool_results)
-                            except json.JSONDecodeError as e:
-                                logger.error(f"Error decoding tool results JSON: {e}")
-                                tool_results_json = {"error": "Invalid tool results format"}
-
-                            with st.expander(f"🔍 Tool Results: {tool_name}", expanded=False):
-                                if "error" in tool_results_json:
-                                    st.error(tool_results_json["error"])
+                                if '<thinking' in text_chunk:
+                                    is_thinking = True
+                                    is_answering = False
+                                elif '<answer' in text_chunk:
+                                    is_thinking = False
+                                    is_answering = True
+                                    answer_content = ""
+                                elif '</answer' in text_chunk:
+                                    is_answering = False
                                 else:
-                                    if tool_name in ["save_memory", "recall_memories", "update_memory", "delete_memory", "get_user_profile", "list_all_memories"]:
-                                        st.markdown(format_memory_results(tool_results_json["result"]))
-                                    else:
-                                        st.json(tool_results_json["result"])
+                                    if text_chunk != ">":
+                                        is_answering = True
+                                
+                                if is_thinking:
+                                    thinking_content += text_chunk
+                                elif is_answering:
+                                    answer_content += text_chunk
+                                    
+                                    clean_answer = re.sub(r'<answer>|</answer>', '', answer_content).strip()
+                                    message_placeholder.markdown(clean_answer)
+                                    logger.debug(f"Assistant response: {clean_answer}")
+        
+                            elif 'toolUse' in delta and is_tool_use:
+                                full_tool_input = handle_tool_use(delta, tool_input_placeholder, full_tool_input, False)
+                                logger.debug(f"Tool input: {full_tool_input}")
 
-                            messages.append(assistant_message)
-                            messages.append({
-                                "role": "user",
-                                "content": [
-                                    {
-                                        "toolResult": {
-                                            "toolUseId": tool_id,
-                                            "content": [
-                                                {"text": str(tool_results)}
-                                            ]
-                                        }
+                        elif 'messageStop' in event:
+                            if event['messageStop'].get('stopReason') == 'tool_use':
+                                if clean_answer:
+                                    assistant_message["content"].append({"text": clean_answer})
+                                    update_display_messages("assistant", clean_answer)
+                                    logger.debug(f"Assistant message appended: {clean_answer}")
+                                
+                                tool_input_json = {}
+                                if full_tool_input:
+                                    try:
+                                        tool_input_json = json.loads(full_tool_input)
+                                    except json.JSONDecodeError as e:
+                                        logger.error(f"Error parsing tool input JSON: {e}")
+                                        logger.error(f"Full tool input: {full_tool_input}")
+                                        tool_input_json = {"error": "Invalid JSON input"}
+                                
+                                assistant_message["content"].append({
+                                    "toolUse": {
+                                        "toolUseId": tool_id,
+                                        "name": tool_name,
+                                        "input": tool_input_json
                                     }
-                                ]
+                                })
+                                tool_input_placeholder.markdown(f"Tool input: {full_tool_input}")
+
+                                try:
+                                    tool_results = process_tool_call(tool_name, tool_input_json)
+                                    tool_results_json = json.loads(tool_results)
+                                except json.JSONDecodeError as e:
+                                    logger.error(f"Error decoding tool results JSON: {e}")
+                                    tool_results_json = {"error": "Invalid tool results format"}
+
+                                with st.expander(f"🔍 Tool Results: {tool_name}", expanded=False):
+                                    if "error" in tool_results_json:
+                                        st.error(tool_results_json["error"])
+                                    else:
+                                        if tool_name in ["save_memory", "recall_memories", "update_memory", "delete_memory", "get_user_profile", "list_all_memories"]:
+                                            st.markdown(format_memory_results(tool_results_json["result"]))
+                                        else:
+                                            st.json(tool_results_json["result"])
+
+                                messages.append(assistant_message)
+                                messages.append({
+                                    "role": "user",
+                                    "content": [
+                                        {
+                                            "toolResult": {
+                                                "toolUseId": tool_id,
+                                                "content": [
+                                                    {"text": str(tool_results)}
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                })
+
+                                update_display_messages("tool", f"Tool used: {tool_name}", tool_name, full_tool_input, tool_results)
+                                logger.debug(f"Tool results processed: {tool_results}")
+
+                                tool_input_placeholder.empty()
+                                is_tool_use = False
+                                full_tool_input = ""
+                                full_response = ""
+                                assistant_message = {"role": "assistant", "content": []}
+                            else:
+                                if clean_answer:
+                                    assistant_message["content"].append({"text": clean_answer})
+                                    update_display_messages("assistant", clean_answer)
+                                    logger.debug(f"Final assistant message: {clean_answer}")
+                                messages.append(assistant_message)
+
+                        if 'metadata' in event:
+                            metadata = event['metadata']
+                            if 'usage' in metadata:
+                                usage = metadata['usage']
+                                turn_token_usage['inputTokens'] += usage.get('inputTokens', 0)
+                                turn_token_usage['outputTokens'] += usage.get('outputTokens', 0)
+                                turn_token_usage['totalTokens'] += usage.get('totalTokens', 0)
+
+                    elif provider == 'openai':
+                        if 'choices' in event:
+                            delta = event['choices'][0]['delta']
+                            if 'content' in delta:
+                                text_chunk = delta['content']
+                                full_response += text_chunk
+                                message_placeholder.markdown(full_response)
+                            elif 'function_call' in delta:
+                                function_call = delta['function_call']
+                                if 'name' in function_call:
+                                    tool_name = function_call['name']
+                                if 'arguments' in function_call:
+                                    full_tool_input += function_call['arguments']
+                                tool_input_placeholder.markdown(f"Using tool: {tool_name}\nArguments: {full_tool_input}")
+                        if event['choices'][0]['finish_reason'] == 'function_call':
+                            tool_results = process_tool_call(tool_name, json.loads(full_tool_input))
+                            messages.append({
+                                "role": "function",
+                                "name": tool_name,
+                                "content": json.dumps(tool_results)
                             })
-
-                            update_display_messages("tool", f"Tool used: {tool_name}", tool_name, full_tool_input, tool_results)
-                            logger.debug(f"Tool results processed: {tool_results}")
-
-                            tool_input_placeholder.empty()
-                            is_tool_use = False
-                            full_tool_input = ""
                             full_response = ""
-                            assistant_message = {"role": "assistant", "content": []}
-                        else:
-                            if clean_answer:
-                                assistant_message["content"].append({"text": clean_answer})
-                                update_display_messages("assistant", clean_answer)
-                                logger.debug(f"Final assistant message: {clean_answer}")
-                            messages.append(assistant_message)
-
-                    if 'metadata' in event:
-                        metadata = event['metadata']
-                        if 'usage' in metadata:
-                            usage = metadata['usage']
-                            turn_token_usage['inputTokens'] += usage.get('inputTokens', 0)
-                            turn_token_usage['outputTokens'] += usage.get('outputTokens', 0)
-                            turn_token_usage['totalTokens'] += usage.get('totalTokens', 0)
+                            full_tool_input = ""
+                            break
 
                 if messages[-1]["role"] == "assistant":
                     return turn_token_usage

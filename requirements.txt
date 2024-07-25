@@ -8,3 +8,4 @@ pillow>=10.3.0
 feedparser>=6.0.0
 chromadb>=0.5.3
 yfinance>=0.2.41
+openai

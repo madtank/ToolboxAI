@@ -7,7 +7,7 @@ from datetime import datetime
 import streamlit as st
 from PIL import Image
 
-from src.bedrock_client import create_bedrock_client
+from src.ai_client import create_ai_client
 from src.conversation_handler import handle_chat_input, process_ai_response
 from src.memory_manager import MemoryManager
 from src.utils import format_rss_results, format_search_results, new_chat
@@ -58,19 +58,24 @@ def main():
 
     # Model selection
     models = [
-        {"name": "Claude 3 Haiku", "id": "anthropic.claude-3-haiku-20240307-v1:0"},
-        {"name": "Claude 3 Sonnet", "id": "anthropic.claude-3-sonnet-20240229-v1:0"},
-        {"name": "Claude 3.5 Sonnet", "id": "anthropic.claude-3-5-sonnet-20240620-v1:0"},  # Note: Only available in East, does not support document uploads.
-        {"name": "Claude 3 Opus", "id": "anthropic.claude-3-opus-20240229-v1:0"}
+        {"name": "Claude 3 Haiku", "id": "anthropic.claude-3-haiku-20240307-v1:0", "provider": "bedrock"},
+        {"name": "Claude 3 Sonnet", "id": "anthropic.claude-3-sonnet-20240229-v1:0", "provider": "bedrock"},
+        {"name": "Claude 3.5 Sonnet", "id": "anthropic.claude-3-5-sonnet-20240620-v1:0", "provider": "bedrock"},
+        {"name": "Claude 3 Opus", "id": "anthropic.claude-3-opus-20240229-v1:0", "provider": "bedrock"},
+        {"name": "GPT-4o-Mini", "id": "gpt-4o-mini", "provider": "openai"},
+        {"name": "GPT-4o", "id": "gpt-4o", "provider": "openai"}
     ]
     model_names = [model["name"] for model in models]
     selected_model_name = st.sidebar.selectbox("Select a model", model_names)
 
-    model_id = next((model["id"] for model in models if model["name"] == selected_model_name), None)
+    selected_model = next((model for model in models if model["name"] == selected_model_name), None)
 
     # AWS regions for dropdown
     regions = ["us-west-2", "us-east-1"]
     region_name = st.sidebar.selectbox("Select AWS Region", regions, index=regions.index("us-west-2"))
+
+    # Add OpenAI API key input in the sidebar
+    openai_api_key = st.sidebar.text_input("OpenAI API Key", type="password")
 
     # Add a placeholder in the sidebar for the token usage
     token_usage_placeholder = st.sidebar.empty()
@@ -88,7 +93,14 @@ def main():
     # System prompt
     system_prompt = get_system_prompt_for_persona(st.session_state.selected_persona)
     
-    bedrock_client = create_bedrock_client(region_name)
+    if selected_model["provider"] == "bedrock":
+        ai_client = create_ai_client("bedrock", region_name=region_name)
+    elif selected_model["provider"] == "openai":
+        if not openai_api_key:
+            st.error("Please enter your OpenAI API key.")
+            st.stop()
+        ai_client = create_ai_client("openai", api_key=openai_api_key)
+
     system_prompts = [{"text": system_prompt}]
     inference_config = {"temperature": 0.7}
     additional_model_fields = {"top_k": 200}
@@ -161,8 +173,9 @@ def main():
 
             # Process AI response
             updated_token_usage = process_ai_response(
-                bedrock_client, 
-                model_id, 
+                ai_client, 
+                selected_model["provider"],
+                selected_model["id"], 
                 st.session_state.history, 
                 system_prompts, 
                 inference_config, 
