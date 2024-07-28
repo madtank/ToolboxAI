@@ -186,7 +186,7 @@ def main():
 
             # Update the uploader key to reset the file uploader
             st.session_state['uploader_key'] = random.randint(1, 100000)
-            st.rerun()
+            st.stop()
 
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
