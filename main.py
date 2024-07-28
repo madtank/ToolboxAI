@@ -39,7 +39,7 @@ def main():
             'totalTokens': 0
         }
     if "selected_persona" not in st.session_state:
-        st.session_state.selected_persona = "Personal Assistant"
+        st.session_state.selected_persona = "CogniscentAI"
 
     # File uploader for both images and documents
     allowed_types = ["png", "jpg", "jpeg", "webp", "pdf", "csv", "doc", "docx", "xls", "xlsx", "html", "txt", "md", "py"]

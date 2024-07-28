@@ -1,20 +1,62 @@
-# Use an official Python runtime as the base image
-FROM python:3.11-slim
+# Use Amazon Linux 2023 as the base image
+FROM amazonlinux:2023
 
 # Set the working directory in the container
 WORKDIR /app
 
+# Install system dependencies and Python
+RUN dnf update -y && \
+    dnf install -y --allowerasing \
+    python3 \
+    python3-pip \
+    python3-devel \
+    gcc \
+    curl \
+    wget \
+    git \
+    vim-minimal \
+    nano \
+    tmux \
+    jq \
+    nodejs \
+    npm \
+    unzip \
+    net-tools \
+    iputils \
+    bind-utils \
+    && dnf clean all
+
+# Create and activate virtual environment
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
 # Copy only the requirements file first to leverage Docker cache
 COPY requirements.txt .
 
-# Install system dependencies and Python packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    curl \
-    git \
-    && pip install --no-cache-dir -r requirements.txt \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Install Python packages
+RUN pip3 install --no-cache-dir --upgrade pip && \
+    pip3 install --no-cache-dir -r requirements.txt
+
+# Install additional useful Python packages
+RUN pip3 install --no-cache-dir \
+    requests \
+    beautifulsoup4 \
+    praw \
+    tweepy \
+    psutil \
+    python-dotenv \
+    pyyaml \
+    schedule \
+    colorama \
+    tqdm \
+    pytz \
+    faker \
+    python-dateutil \
+    pymongo \
+    redis \
+    asyncio \
+    aiohttp
 
 # Copy the main application file
 COPY main.py .
