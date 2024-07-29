@@ -119,3 +119,13 @@ def format_memory_results(results):
         return "\n".join(str(item) for item in results)
     else:
         return str(results)
+
+def reset_high_priority_message():
+    st.session_state.high_priority_message = ""
+
+def handle_high_priority_message(system_prompt):
+    high_priority_message = st.session_state.get("high_priority_message", "")
+    if high_priority_message:
+        system_prompt = f"{high_priority_message}\n\n{system_prompt}"
+        reset_high_priority_message()
+    return system_prompt

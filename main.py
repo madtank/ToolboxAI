@@ -10,7 +10,7 @@ from PIL import Image
 from src.bedrock_client import create_bedrock_client
 from src.conversation_handler import handle_chat_input, process_ai_response
 from src.memory_manager import MemoryManager
-from src.utils import format_rss_results, format_search_results, new_chat
+from src.utils import format_rss_results, format_search_results, new_chat, reset_high_priority_message, handle_high_priority_message
 from src.personas import get_persona_names, get_tools_for_persona, get_system_prompt_for_persona
 from src.tools import get_dynamic_tool_config  # Import the new function
 
@@ -40,6 +40,8 @@ def main():
         }
     if "selected_persona" not in st.session_state:
         st.session_state.selected_persona = "CogniscentAI"
+    if "high_priority_message" not in st.session_state:
+        st.session_state.high_priority_message = ""
 
     # File uploader for both images and documents
     allowed_types = ["png", "jpg", "jpeg", "webp", "pdf", "csv", "doc", "docx", "xls", "xlsx", "html", "txt", "md", "py"]
@@ -84,6 +86,12 @@ def main():
             f"Total Tokens: {st.session_state.total_token_usage['totalTokens']}",
             unsafe_allow_html=True
         )
+
+    # High-priority message input and button
+    st.sidebar.text_area("High-Priority Message", key="high_priority_message")
+    if st.sidebar.button("Set High Priority Message"):
+        st.session_state.high_priority_message = st.sidebar.text_area("High-Priority Message")
+        st.sidebar.success("High-priority message set for the next response.")
 
     # System prompt
     system_prompt = get_system_prompt_for_persona(st.session_state.selected_persona)
