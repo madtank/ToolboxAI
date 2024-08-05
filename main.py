@@ -3,6 +3,7 @@ import logging
 import os
 import random
 from datetime import datetime
+from pathlib import Path
 
 import streamlit as st
 from PIL import Image
@@ -12,11 +13,14 @@ from src.conversation_handler import handle_chat_input, process_ai_response
 from src.memory_manager import MemoryManager
 from src.utils import format_rss_results, format_search_results, new_chat
 from src.personas import get_persona_names, get_tools_for_persona, get_system_prompt_for_persona
-from src.tools import get_dynamic_tool_config  # Import the new function
+from src.tools import get_dynamic_tool_config
+
+os.chdir(Path(__file__).parent)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Set up the Streamlit app
 icon = Image.open("assets/favicon.ico")
 st.set_page_config(page_title="ToolboxAI", page_icon=icon)
 
@@ -58,9 +62,9 @@ def main():
 
     # Model selection
     models = [
+        {"name": "Claude 3.5 Sonnet", "id": "anthropic.claude-3-5-sonnet-20240620-v1:0"},  # Note: Only available in East, does not support document uploads.
         {"name": "Claude 3 Haiku", "id": "anthropic.claude-3-haiku-20240307-v1:0"},
         {"name": "Claude 3 Sonnet", "id": "anthropic.claude-3-sonnet-20240229-v1:0"},
-        {"name": "Claude 3.5 Sonnet", "id": "anthropic.claude-3-5-sonnet-20240620-v1:0"},  # Note: Only available in East, does not support document uploads.
         {"name": "Claude 3 Opus", "id": "anthropic.claude-3-opus-20240229-v1:0"}
     ]
     model_names = [model["name"] for model in models]
@@ -70,7 +74,7 @@ def main():
 
     # AWS regions for dropdown
     regions = ["us-west-2", "us-east-1"]
-    region_name = st.sidebar.selectbox("Select AWS Region", regions, index=regions.index("us-west-2"))
+    region_name = st.sidebar.selectbox("Select AWS Region", regions, index=regions.index("us-east-1"))
 
     # Add a placeholder in the sidebar for the token usage
     token_usage_placeholder = st.sidebar.empty()
