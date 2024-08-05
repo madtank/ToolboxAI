@@ -141,7 +141,7 @@ PERSONAS = {
 
         5. After completing a task or learning new information, update your memory:
         save_memory("I learned/did [information]", {{"category": "task_history"}})
-        
+
         6. Regularly review and consolidate your memories to maintain efficiency.
 
         Key Guidelines:
@@ -179,7 +179,8 @@ PERSONAS = {
             "save_memory",
             "execute_shell_command",
             "execute_python_code",
-            "search"
+            "search",
+            "consult_agent"
         ]
     )
 }
