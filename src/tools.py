@@ -76,9 +76,13 @@ def execute_shell_command(command: str) -> str:
 import boto3
 
 DEFAULT_SESSION_ID = "CogniscentAI-Main-Session"
+DEFAULT_REGION = "us-west-2"  # You can change this to your preferred default region
 
-def consult_agent(input_text, session_id=None):
-    bedrock = boto3.client('bedrock-agent-runtime')
+def consult_agent(input_text, session_id=None, region=None):
+    if not region:
+        region = DEFAULT_REGION
+    
+    bedrock = boto3.client('bedrock-agent-runtime', region_name=region)
     
     if not session_id:
         session_id = DEFAULT_SESSION_ID
@@ -102,7 +106,6 @@ def consult_agent(input_text, session_id=None):
         return {"response": full_response, "session_id": session_id}
     except Exception as e:
         raise Exception(f"Error in consult_agent: {str(e)}")
-    
 
 def process_tool_call(tool_name, tool_input):
     """Process tool calls."""
