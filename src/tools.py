@@ -7,6 +7,7 @@ from src.memory_manager import MemoryManager
 import logging
 import json
 import logging
+import boto3
 from src.finance_manager import (
     get_stock_price,
     calculate_roi,
@@ -72,6 +73,40 @@ def execute_shell_command(command: str) -> str:
         "output": output
     })
 
+import boto3
+
+DEFAULT_SESSION_ID = "CogniscentAI-Main-Session"
+DEFAULT_REGION = "us-west-2"  # You can change this to your preferred default region
+
+def consult_agent(input_text, session_id=None, region=None):
+    if not region:
+        region = DEFAULT_REGION
+    
+    bedrock = boto3.client('bedrock-agent-runtime', region_name=region)
+    
+    if not session_id:
+        session_id = DEFAULT_SESSION_ID
+    
+    try:
+        response = bedrock.invoke_agent(
+            agentAliasId='HBC1BIIRQG',
+            agentId='NG7BOZJ9TN',
+            sessionId=session_id,
+            inputText=input_text
+        )
+        
+        event_stream = response['completion']
+        full_response = ""
+        for event in event_stream:
+            if 'chunk' in event:
+                chunk = event['chunk']
+                if 'bytes' in chunk:
+                    full_response += chunk['bytes'].decode('utf-8')
+        
+        return {"response": full_response, "session_id": session_id}
+    except Exception as e:
+        raise Exception(f"Error in consult_agent: {str(e)}")
+
 def process_tool_call(tool_name, tool_input):
     """Process tool calls."""
     logger.info(f"Tool call: {tool_name}")
@@ -102,6 +137,8 @@ def process_tool_call(tool_name, tool_input):
             result = execute_python_code(tool_input["code"])
         elif tool_name == "execute_shell_command":
             result = execute_shell_command(tool_input["command"])
+        elif tool_name == "consult_agent":
+            result = consult_agent(tool_input["input_text"], tool_input.get("session_id"))
         elif hasattr(memory_manager, tool_name):
             result = getattr(memory_manager, tool_name)(**tool_input)
         else:
@@ -331,6 +368,20 @@ ALL_TOOLS = {
                     'command': {'type': 'string', 'description': 'The shell command to execute'}
                 },
                 'required': ['command']
+            }
+        }
+    },
+    'consult_agent': {
+        'name': 'consult_agent',
+        'description': 'Consult with an advanced AI agent that has access to a code interpreter and long-term memory. Use for complex tasks or when additional expertise is needed.',
+        'inputSchema': {
+            'json': {
+                'type': 'object',
+                'properties': {
+                    'input_text': {'type': 'string', 'description': 'The question or task for the AI agent'},
+                    'session_id': {'type': 'string', 'description': 'Optional. Use the same session_id for related queries to maintain context'}
+                },
+                'required': ['input_text']
             }
         }
     }
