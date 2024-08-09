@@ -50,7 +50,7 @@ def initialize_session_state():
             'totalTokens': 0
         }
     if "selected_persona" not in st.session_state:
-        st.session_state.selected_persona = "Personal Assistant"
+        st.session_state.selected_persona = "CogniscentAI"
 
 def display_token_usage_and_cost(model_id):
     if st.session_state.total_token_usage['totalTokens'] > 0:
