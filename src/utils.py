@@ -119,3 +119,22 @@ def format_memory_results(results):
         return "\n".join(str(item) for item in results)
     else:
         return str(results)
+
+def calculate_cost(model_id, input_tokens, output_tokens):
+    # Pricing information for different models (as of the latest update)
+    pricing = {
+        "anthropic.claude-3-haiku-20240307-v1:0": {"input": 0.00025, "output": 0.00125},
+        "anthropic.claude-3-sonnet-20240229-v1:0": {"input": 0.003, "output": 0.015},
+        "anthropic.claude-3-5-sonnet-20240620-v1:0": {"input": 0.003, "output": 0.015},
+        "anthropic.claude-3-opus-20240229-v1:0": {"input": 0.015, "output": 0.075}
+    }
+    
+    if model_id not in pricing:
+        return "Cost calculation not available for this model"
+    
+    model_pricing = pricing[model_id]
+    input_cost = (input_tokens / 1000) * model_pricing["input"]
+    output_cost = (output_tokens / 1000) * model_pricing["output"]
+    total_cost = input_cost + output_cost
+    
+    return f"${total_cost:.4f}"
