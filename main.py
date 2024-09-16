@@ -153,11 +153,8 @@ def handle_user_input(prompt, file_content, file_name, bedrock_client, model_id,
             dynamic_tool_config
         )
 
-        # Add this line to update the token usage
+        # Update the token usage
         update_token_usage(turn_token_usage)
-
-        # Add this line to display the token usage after each interaction
-        display_token_usage_and_cost(model_id)
 
         st.session_state['uploader_key'] = random.randint(1, 100000)
 
@@ -189,7 +186,7 @@ def display_token_usage_and_cost(model_id):
         st.sidebar.markdown("No token usage yet.")
 
 def main():
-    st.title("ToolboxAI")
+    st.title("CogniscentAI")
 
     initialize_session_state()
 
@@ -222,7 +219,7 @@ def main():
         file_name = None
 
         if uploaded_file is not None:
-            file_content = uploaded_file.read()  # Use read() instead of getvalue()
+            file_content = uploaded_file.read()
             file_name = uploaded_file.name
 
         handle_user_input(prompt, file_content, file_name, bedrock_client, model_id, system_prompts, inference_config, additional_model_fields, dynamic_tool_config)
