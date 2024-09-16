@@ -1,73 +1,137 @@
-import io
+import ast
+import json
+import math
 import sys
-import traceback
-from contextlib import redirect_stdout, redirect_stderr
-from typing import Dict, Any
+import io
+import string
 
-def execute_python_code(code: str) -> Dict[str, Any]:
+def execute_python_code(code: str = None) -> str:
     """
-    Execute Python code and return the result, output, and any errors.
-
-    This function creates a sandboxed environment to run Python code,
-    capturing the output, errors, and an optional result value.
-
-    Args:
-        code (str): The Python code to execute.
-
-    Returns:
-        dict: A dictionary containing the execution result, output, and any errors.
+    Execute pre-approved Python code and return the input code and output.
+    If no code is provided, it runs a built-in example.
     """
-    output = io.StringIO()
-    error = io.StringIO()
-    result = None
+    if code is None:
+        # Built-in example/test
+        code = """
+word = 'strawberry'
+count_r = word.count('r')
+print(f"The word '{word}' has {count_r} 'r's.")
+"""
 
     try:
-        with redirect_stdout(output), redirect_stderr(error):
-            exec_globals = {}
-            exec(code, exec_globals)
-            if 'result' in exec_globals:
-                result = exec_globals['result']
-    except Exception:
-        error.write(traceback.format_exc())
+        # Prepare allowed names (modules and built-in functions)
+        allowed_names = {
+            'math': math,
+            'string': string,
+            'print': print,
+            'len': len,
+            'str': str,
+            'int': int,
+            'float': float,
+            'list': list,
+            'dict': dict,
+            'set': set,
+            'tuple': tuple,
+            'enumerate': enumerate,
+            'range': range,
+            # Add other allowed built-in functions here
+        }
 
-    return {
-        "result": result,
-        "output": output.getvalue(),
-        "error": error.getvalue()
-    }
+        # Add allowed methods for string objects
+        allowed_attributes = {
+            'str': [
+                'lower', 'upper', 'count', 'find', 'replace', 'split', 'strip', 'startswith', 'endswith',
+            ],
+            # You can add allowed methods for other types here
+        }
 
-# Example usage
+        # Parse the code into an AST
+        tree = ast.parse(code, mode='exec')
+
+        # Define a visitor to ensure only allowed nodes and names are used
+        class SafeVisitor(ast.NodeVisitor):
+            SAFE_NODES = (
+                ast.Module, ast.Expr, ast.Assign, ast.Load, ast.Store,
+                ast.BinOp, ast.UnaryOp, ast.Constant, ast.Name,
+                ast.Call, ast.Attribute, ast.Subscript, ast.Index, ast.Slice,
+                ast.List, ast.Tuple, ast.Dict, ast.Set,
+                ast.Compare, ast.IfExp, ast.For, ast.While, ast.If,
+                ast.BoolOp, ast.And, ast.Or, ast.Not, ast.Eq, ast.NotEq,
+                ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.In, ast.NotIn,
+                ast.Add, ast.Sub, ast.Mult, ast.Div, ast.FloorDiv, ast.Mod,
+                ast.Pow, ast.LShift, ast.RShift, ast.BitOr, ast.BitXor, ast.BitAnd,
+                ast.Return, ast.FunctionDef, ast.arguments, ast.arg, ast.With,
+                ast.Raise, ast.Try, ast.ExceptHandler, ast.Pass, ast.Break, ast.Continue,
+                ast.AugAssign, ast.Lambda, ast.DictComp, ast.ListComp, ast.GeneratorExp,
+                ast.JoinedStr, ast.FormattedValue,  # Add support for f-strings
+            )
+
+            def visit(self, node):
+                if not isinstance(node, self.SAFE_NODES):
+                    raise ValueError(f"Unsafe node '{type(node).__name__}' detected")
+                return super().visit(node)
+
+            def visit_Name(self, node):
+                if node.id.startswith('_'):
+                    raise NameError(f"Use of name '{node.id}' is not allowed")
+                return self.generic_visit(node)
+
+            def visit_Call(self, node):
+                self.visit(node.func)
+                for arg in node.args:
+                    self.visit(arg)
+                for keyword in node.keywords:
+                    self.visit(keyword.value)
+
+            def visit_Attribute(self, node):
+                self.visit(node.value)
+                if isinstance(node.value, ast.Name):
+                    if node.value.id not in allowed_names:
+                        # Allow attributes on variables, which will be checked at runtime
+                        return
+                elif isinstance(node.value, ast.Constant):
+                    obj_type = type(node.value.value).__name__
+                    if obj_type == 'str':
+                        if node.attr not in allowed_attributes.get('str', []):
+                            raise AttributeError(f"Attribute '{node.attr}' is not allowed on str objects")
+                    elif obj_type not in allowed_names:
+                        raise AttributeError(f"Attributes on object type '{obj_type}' are not allowed")
+                else:
+                    raise AttributeError(f"Attributes on complex expressions are not allowed")
+
+        # Visit the AST to ensure safety
+        SafeVisitor().visit(tree)
+
+        # Prepare the namespace for execution
+        exec_globals = {'__builtins__': None}
+        exec_globals.update(allowed_names)
+        exec_locals = {}
+
+        # Capture output
+        old_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+
+        try:
+            # Compile the AST
+            compiled_code = compile(tree, filename='<ast>', mode='exec')
+            # Execute the code
+            exec(compiled_code, exec_globals, exec_locals)
+            # Get the output
+            output = sys.stdout.getvalue()
+        finally:
+            sys.stdout = old_stdout
+
+        return json.dumps({
+            "code": code,
+            "output": output.strip()
+        })
+    except Exception as e:
+        return json.dumps({
+            "code": code,
+            "output": f"Error: {str(e)}"
+        })
+
+# Add this at the end of the file to automatically run the test when the module is imported
 if __name__ == "__main__":
-    # Example 1: Basic calculation
-    code1 = """
-print("Calculating the sum of squares from 1 to 5")
-sum_of_squares = sum(x**2 for x in range(1, 6))
-print(f"The sum of squares from 1 to 5 is: {sum_of_squares}")
-result = sum_of_squares  # Set the result
-"""
-    result1 = execute_python_code(code1)
-    print("Example 1 Result:", result1)
-
-    # Example 2: Code with an error
-    code2 = """
-print("Attempting to divide by zero")
-result = 1 / 0
-"""
-    result2 = execute_python_code(code2)
-    print("Example 2 Result:", result2)
-
-    # Example 3: More complex code
-    code3 = """
-def fibonacci(n):
-    a, b = 0, 1
-    for _ in range(n):
-        yield a
-        a, b = b, a + b
-
-print("Generating the first 10 Fibonacci numbers:")
-fib_list = list(fibonacci(10))
-print(fib_list)
-result = sum(fib_list)  # Set the result to the sum of the first 10 Fibonacci numbers
-"""
-    result3 = execute_python_code(code3)
-    print("Example 3 Result:", result3)
+    print("Running built-in test:")
+    print(execute_python_code())

@@ -51,6 +51,10 @@ def initialize_session_state():
         }
     if "selected_persona" not in st.session_state:
         st.session_state.selected_persona = "CogniscentAI"
+    if "memory_manager" not in st.session_state:
+        st.session_state.memory_manager = MemoryManager()
+    if "conversation_id" not in st.session_state:
+        st.session_state.conversation_id = None
 
 def display_token_usage_and_cost(model_id):
     if st.session_state.total_token_usage['totalTokens'] > 0:
@@ -139,7 +143,7 @@ def handle_user_input(prompt, file_content, file_name, bedrock_client, model_id,
 
         handle_chat_input(prompt, file_content, file_name)
 
-        updated_token_usage = process_ai_response(
+        turn_token_usage = process_ai_response(
             bedrock_client, 
             model_id, 
             st.session_state.history, 
@@ -149,7 +153,11 @@ def handle_user_input(prompt, file_content, file_name, bedrock_client, model_id,
             dynamic_tool_config
         )
 
-        update_token_usage(updated_token_usage)
+        # Add this line to update the token usage
+        update_token_usage(turn_token_usage)
+
+        # Add this line to display the token usage after each interaction
+        display_token_usage_and_cost(model_id)
 
         st.session_state['uploader_key'] = random.randint(1, 100000)
 
@@ -163,6 +171,23 @@ def update_token_usage(updated_token_usage):
         st.session_state.total_token_usage['outputTokens'] += updated_token_usage['outputTokens']
         st.session_state.total_token_usage['totalTokens'] += updated_token_usage['totalTokens']
 
+
+def display_token_usage_and_cost(model_id):
+    if st.session_state.total_token_usage['totalTokens'] > 0:
+        cost = calculate_cost(model_id, 
+                              st.session_state.total_token_usage['inputTokens'], 
+                              st.session_state.total_token_usage['outputTokens'])
+        st.sidebar.markdown(
+            "**Total Token Usage and Cost**<br>"
+            f"Input Tokens: {st.session_state.total_token_usage['inputTokens']}<br>"
+            f"Output Tokens: {st.session_state.total_token_usage['outputTokens']}<br>"
+            f"Total Tokens: {st.session_state.total_token_usage['totalTokens']}<br>"
+            f"Estimated Cost: {cost}",
+            unsafe_allow_html=True
+        )
+    else:
+        st.sidebar.markdown("No token usage yet.")
+
 def main():
     st.title("ToolboxAI")
 
@@ -170,14 +195,11 @@ def main():
 
     model_id, region_name = setup_sidebar()
 
-    # Determine allowed file types based on the selected model
-    if model_id == "anthropic.claude-3-5-sonnet-20240620-v1:0":
-        allowed_types = ["png", "jpg", "jpeg", "webp"]
-        upload_message = "Upload an image"
-    else:
-        allowed_types = ["png", "jpg", "jpeg", "webp", "pdf", "csv", "doc", "docx", "xls", "xlsx", "html", "txt", "md", "py"]
-        upload_message = "Upload an image or document"
+    # Determine allowed file types
+    allowed_types = ["png", "jpg", "jpeg", "webp"]
+    upload_message = "Upload an image"
 
+    # Move file uploader outside the chat input handling
     uploaded_file = st.file_uploader(upload_message, type=allowed_types, key=f"uploader_{st.session_state['uploader_key']}")
 
     system_prompt = get_system_prompt_for_persona(st.session_state.selected_persona)
@@ -200,13 +222,14 @@ def main():
         file_name = None
 
         if uploaded_file is not None:
-            file_content = uploaded_file.getvalue()
+            file_content = uploaded_file.read()  # Use read() instead of getvalue()
             file_name = uploaded_file.name
 
         handle_user_input(prompt, file_content, file_name, bedrock_client, model_id, system_prompts, inference_config, additional_model_fields, dynamic_tool_config)
 
-    # Display token usage and cost at the end
-    display_token_usage_and_cost(model_id)
+        # Display token usage and cost after each interaction
+        display_token_usage_and_cost(model_id)
 
 if __name__ == "__main__":
     main()
+

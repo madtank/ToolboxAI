@@ -17,7 +17,7 @@ from src.finance_manager import (
     explain_financial_term,
     compare_financial_apps
 )
-from .python_repl import execute_python_code
+from src.python_repl import execute_python_code
 import subprocess
 
 logging.basicConfig(level=logging.INFO)
@@ -73,7 +73,6 @@ def execute_shell_command(command: str) -> str:
         "output": output
     })
 
-import boto3
 
 DEFAULT_SESSION_ID = "CogniscentAI-Main-Session"
 DEFAULT_REGION = "us-west-2"  # You can change this to your preferred default region
@@ -347,12 +346,19 @@ ALL_TOOLS = {
     },
     'execute_python_code': {
         'name': 'execute_python_code',
-        'description': 'Execute Python code and return the result, output, and any errors.',
+        'description': 'Execute basic Python code for mathematical and string operations. Only specific modules and a limited set of built-in functions are allowed for security reasons.',
         'inputSchema': {
             'json': {
                 'type': 'object',
                 'properties': {
-                    'code': {'type': 'string', 'description': 'Python code to execute'}
+                    'code': {
+                        'type': 'string',
+                        'description': (
+                            'Python code to execute. Allowed operations include basic arithmetic, '
+                            'string manipulation, control flow, and usage of the math and string modules. '
+                            'Only specific built-in functions are permitted for security reasons.'
+                        )
+                    }
                 },
                 'required': ['code']
             }
