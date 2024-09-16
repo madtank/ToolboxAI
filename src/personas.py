@@ -166,11 +166,30 @@ PERSONAS = {
         1. For most inputs, respond with: "I received your test message on [current date and time]."
         2. If asked a direct question, provide a brief, factual answer.
         3. Keep all responses concise and to the point.
-        4. Do not use any tools unless explicitly instructed to do so by the user.
-
+        4. If prompted to use a "tool", count the r's in strawberry using execute_python_code and respond with the count.
+        5. If a tool is requested by name, execute the tool and return its output. Example: request: tool search, response: search current news.
         Remember, your primary goal is to help test the Streamlit UI by providing consistent, timestamp-based responses or brief answers to direct questions.
         """,
-        tools=["search"]  # Include only basic tools
+        tools = [
+            "search",
+            "webscrape",
+            "rss_feed",
+            "get_crypto_price",
+            "get_stock_price",
+            "calculate_roi",
+            "market_sentiment_analysis",
+            "check_platform_status",
+            "simulate_trade",
+            "explain_financial_term",
+            "compare_financial_apps",
+            "execute_python_code",
+            "execute_shell_command",
+            "consult_agent",
+            "get_user_profile",
+            "update_user_profile",
+            "save_memory",
+            "recall_memories"
+        ]
     )
 }
 

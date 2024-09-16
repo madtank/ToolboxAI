@@ -29,6 +29,7 @@ def search_duckduckgo(query, region='wt-wt', safesearch='off', max_results=5):
     """DuckDuckGo web search."""
     return list(DDGS().text(keywords=query, region=region, safesearch=safesearch, max_results=max_results))
 
+
 def scrape_webpage(url):
     """Extract text from webpage."""
     return BeautifulSoup(requests.get(url).text, 'html.parser').get_text(separator='\n', strip=True)
@@ -142,7 +143,21 @@ def process_tool_call(tool_name, tool_input):
             result = getattr(memory_manager, tool_name)(**tool_input)
         else:
             return json.dumps({"error": f"Unknown tool: {tool_name}"})
-        return json.dumps({"result": result})
+        
+        # Ensure the result is JSON serializable
+        if isinstance(result, (dict, list)):
+            return json.dumps({"result": result})
+        elif isinstance(result, str):
+            # If it's already a JSON string, return it as is
+            try:
+                json.loads(result)
+                return result
+            except json.JSONDecodeError:
+                # If it's not a JSON string, wrap it in a JSON object
+                return json.dumps({"result": result})
+        else:
+            # For other types, convert to string and wrap in a JSON object
+            return json.dumps({"result": str(result)})
     except Exception as e:
         return json.dumps({"error": f"Error in {tool_name}: {str(e)}"})
 

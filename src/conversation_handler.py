@@ -55,82 +55,93 @@ def process_ai_response(bedrock_client, model_id, messages, system_prompts, infe
     logger.debug("Starting AI response processing")
     turn_token_usage = {'inputTokens': 0, 'outputTokens': 0, 'totalTokens': 0}
     
-    with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        thinking_placeholder = st.empty()
-        tool_input_placeholder = st.empty()
-        state = {
-            "full_response": "",
-            "thinking_content": "",
-            "answer_content": "",
-            "clean_answer": "",
-            "is_thinking": False,
-            "is_answering": False,
-            "full_tool_input": "",
-            "tool_name": None,
-            "tool_id": None,
-            "is_tool_use": False,
-            "assistant_message": {"role": "assistant", "content": []},
-            "message_stop_received": False,
-            "stop_reason": None,
-            "need_tool_use_handling": False
-        }
+    while True:
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            thinking_placeholder = st.empty()
+            tool_input_placeholder = st.empty()
+            state = {
+                "full_response": "",
+                "thinking_content": "",
+                "answer_content": "",
+                "clean_answer": "",
+                "is_thinking": False,
+                "is_answering": False,
+                "full_tool_input": "",
+                "tool_name": None,
+                "tool_id": None,
+                "is_tool_use": False,
+                "assistant_message": {"role": "assistant", "content": []},
+                "message_stop_received": False,
+                "stop_reason": None,
+                "need_tool_use_handling": False,
+                "all_events_processed": False,
+                "turn_token_usage": turn_token_usage  # Add this line
+            }
 
-        try:
-            stream = get_stream(
-                bedrock_client, 
-                model_id, 
-                messages, 
-                system_prompts, 
-                inference_config, 
-                additional_model_fields,
-                dynamic_tool_config
-            )
-            for event in stream_conversation(stream):
-                logger.debug(f"Received event: {event}")
-                
-                # Handle metadata
-                if 'metadata' in event:
-                    metadata = event['metadata']
-                    if 'usage' in metadata:
-                        usage = metadata['usage']
-                        turn_token_usage['inputTokens'] += usage.get('inputTokens', 0)
-                        turn_token_usage['outputTokens'] += usage.get('outputTokens', 0)
-                        turn_token_usage['totalTokens'] += usage.get('totalTokens', 0)
-                
-                # Process other event types
-                if 'contentBlockStart' in event:
-                    handle_content_block_start(event, state)
-                elif 'contentBlockDelta' in event:
-                    handle_content_block_delta(event, state, message_placeholder, thinking_placeholder, tool_input_placeholder)
-                elif 'messageStop' in event:
-                    state['message_stop_received'] = True
-                    state['stop_reason'] = event['messageStop'].get('stopReason')
-                    if state['stop_reason'] == 'tool_use':
-                        state['need_tool_use_handling'] = True
+            try:
+                stream = get_stream(
+                    bedrock_client, 
+                    model_id, 
+                    messages, 
+                    system_prompts, 
+                    inference_config, 
+                    additional_model_fields,
+                    dynamic_tool_config
+                )
+                for event in stream_conversation(stream):
+                    logger.debug(f"Received event: {event}")
+                    
+                    handle_event(event, state, message_placeholder, thinking_placeholder, tool_input_placeholder)
 
-            # After processing all events, handle tool use or finalize the message
-            if state['need_tool_use_handling']:
-                handle_tool_use_stop(state, messages, tool_input_placeholder)
-            else:
-                finalize_assistant_message(state, messages)
+                # All events have been processed
+                state['all_events_processed'] = True
 
-            if messages[-1]["role"] == "assistant":
-                # Save the assistant's message to ChromaDB
-                memory_manager.save_message(messages[-1], st.session_state.conversation_id)
+                if state['need_tool_use_handling']:
+                    handle_tool_use_stop(state, messages, tool_input_placeholder)
+                    # Reset state for next iteration
+                    state['need_tool_use_handling'] = False
+                    state['message_stop_received'] = False
+                    state['all_events_processed'] = False
+                else:
+                    finalize_assistant_message(state, messages)
+                    break  # Exit the loop only if we have a final response and all events are processed
 
-        except ClientError as err:
-            handle_client_error(err)
-        except Exception as e:
-            handle_unexpected_error(e)
+            except ClientError as err:
+                handle_client_error(err)
+                break
+            except Exception as e:
+                handle_unexpected_error(e)
+                break
 
-    return turn_token_usage
+    # Save the assistant's message to ChromaDB
+    if messages[-1]["role"] == "assistant":
+        memory_manager.save_message(messages[-1], st.session_state.conversation_id)
+
+    return state['turn_token_usage']  # Return the updated token usage
 
 def handle_event(event, state, message_placeholder, thinking_placeholder, tool_input_placeholder):
     if 'contentBlockStart' in event:
         handle_content_block_start(event, state)
     elif 'contentBlockDelta' in event:
         handle_content_block_delta(event, state, message_placeholder, thinking_placeholder, tool_input_placeholder)
+    elif 'messageStop' in event:
+        state['message_stop_received'] = True
+        state['stop_reason'] = event['messageStop'].get('stopReason')
+        if state['stop_reason'] == 'tool_use':
+            state['need_tool_use_handling'] = True
+    elif 'metadata' in event:
+        # This is likely the last event, containing token usage information
+        update_token_usage(event, state['turn_token_usage'])
+
+def update_token_usage(event, turn_token_usage):
+    if 'metadata' in event:
+        metadata = event['metadata']
+        if 'usage' in metadata:
+            usage = metadata['usage']
+            turn_token_usage['inputTokens'] += usage.get('inputTokens', 0)
+            turn_token_usage['outputTokens'] += usage.get('outputTokens', 0)
+            turn_token_usage['totalTokens'] += usage.get('totalTokens', 0)
 
 def handle_content_block_start(event, state):
     start = event['contentBlockStart']['start']
@@ -228,7 +239,7 @@ def parse_tool_input(full_tool_input):
 def get_tool_results(tool_name, tool_input):
     try:
         tool_results = process_tool_call(tool_name, tool_input)
-        return json.loads(tool_results)
+        return json.loads(tool_results)  # Parse the JSON string
     except json.JSONDecodeError as e:
         logger.error(f"Error decoding tool results JSON: {e}")
         return {"error": "Invalid tool results format"}
@@ -249,15 +260,6 @@ def finalize_assistant_message(state, messages):
         update_display_messages("assistant", state['clean_answer'])
         logger.debug(f"Final assistant message: {state['clean_answer']}")
     messages.append(state['assistant_message'])
-
-def update_token_usage(event, turn_token_usage):
-    if 'metadata' in event:
-        metadata = event['metadata']
-        if 'usage' in metadata:
-            usage = metadata['usage']
-            turn_token_usage['inputTokens'] += usage.get('inputTokens', 0)
-            turn_token_usage['outputTokens'] += usage.get('outputTokens', 0)
-            turn_token_usage['totalTokens'] += usage.get('totalTokens', 0)
 
 def handle_client_error(err):
     message = err.response['Error']['Message']
