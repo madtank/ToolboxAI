@@ -1,59 +1,43 @@
 import ast
-import json
-import math
-import sys
 import io
-import string
+import contextlib
 
-def execute_python_code(code: str = None) -> str:
-    """
-    Execute pre-approved Python code and return the input code and output.
-    If no code is provided, it runs a built-in example.
-    """
-    if code is None:
-        # Built-in example/test
-        code = """
-word = 'strawberry'
-count_r = word.count('r')
-print(f"The word '{word}' has {count_r} 'r's.")
-"""
+# Execution mode toggle (True for safe mode, False for flexible mode)
+SAFE_MODE = False
 
+# Define the whitelist of safe built-in functions
+SAFE_BUILTINS = {
+    'abs': abs, 'all': all, 'any': any, 'ascii': ascii, 'bin': bin,
+    'bool': bool, 'chr': chr, 'dict': dict, 'divmod': divmod, 'enumerate': enumerate,
+    'filter': filter, 'float': float, 'format': format, 'frozenset': frozenset,
+    'hex': hex, 'int': int, 'isinstance': isinstance, 'issubclass': issubclass,
+    'len': len, 'list': list, 'map': map, 'max': max, 'min': min,
+    'oct': oct, 'ord': ord, 'pow': pow, 'print': print, 'range': range,
+    'repr': repr, 'reversed': reversed, 'round': round, 'set': set,
+    'slice': slice, 'sorted': sorted, 'str': str, 'sum': sum, 'tuple': tuple,
+    'type': type, 'zip': zip
+}
+
+def get_execution_mode():
+    return "safe" if SAFE_MODE else "flexible"
+
+def set_execution_mode(mode):
+    global SAFE_MODE
+    if mode not in ['safe', 'flexible']:
+        raise ValueError("Mode must be either 'safe' or 'flexible'")
+    SAFE_MODE = (mode == 'safe')
+
+def safe_exec(code):
     try:
-        # Prepare allowed names (modules and built-in functions)
-        allowed_names = {
-            'math': math,
-            'string': string,
-            'print': print,
-            'len': len,
-            'str': str,
-            'int': int,
-            'float': float,
-            'list': list,
-            'dict': dict,
-            'set': set,
-            'tuple': tuple,
-            'enumerate': enumerate,
-            'range': range,
-            # Add other allowed built-in functions here
-        }
-
-        # Add allowed methods for string objects
-        allowed_attributes = {
-            'str': [
-                'lower', 'upper', 'count', 'find', 'replace', 'split', 'strip', 'startswith', 'endswith',
-            ],
-            # You can add allowed methods for other types here
-        }
-
         # Parse the code into an AST
         tree = ast.parse(code, mode='exec')
 
-        # Define a visitor to ensure only allowed nodes and names are used
+        # Define a visitor to ensure only safe nodes are used
         class SafeVisitor(ast.NodeVisitor):
             SAFE_NODES = (
                 ast.Module, ast.Expr, ast.Assign, ast.Load, ast.Store,
                 ast.BinOp, ast.UnaryOp, ast.Constant, ast.Name,
-                ast.Call, ast.Attribute, ast.Subscript, ast.Index, ast.Slice,
+                ast.Call, ast.Subscript, ast.Index, ast.Slice,
                 ast.List, ast.Tuple, ast.Dict, ast.Set,
                 ast.Compare, ast.IfExp, ast.For, ast.While, ast.If,
                 ast.BoolOp, ast.And, ast.Or, ast.Not, ast.Eq, ast.NotEq,
@@ -63,7 +47,7 @@ print(f"The word '{word}' has {count_r} 'r's.")
                 ast.Return, ast.FunctionDef, ast.arguments, ast.arg, ast.With,
                 ast.Raise, ast.Try, ast.ExceptHandler, ast.Pass, ast.Break, ast.Continue,
                 ast.AugAssign, ast.Lambda, ast.DictComp, ast.ListComp, ast.GeneratorExp,
-                ast.JoinedStr, ast.FormattedValue,  # Add support for f-strings
+                ast.JoinedStr, ast.FormattedValue,  # Support for f-strings
             )
 
             def visit(self, node):
@@ -71,67 +55,53 @@ print(f"The word '{word}' has {count_r} 'r's.")
                     raise ValueError(f"Unsafe node '{type(node).__name__}' detected")
                 return super().visit(node)
 
-            def visit_Name(self, node):
-                if node.id.startswith('_'):
-                    raise NameError(f"Use of name '{node.id}' is not allowed")
-                return self.generic_visit(node)
-
-            def visit_Call(self, node):
-                self.visit(node.func)
-                for arg in node.args:
-                    self.visit(arg)
-                for keyword in node.keywords:
-                    self.visit(keyword.value)
-
-            def visit_Attribute(self, node):
-                self.visit(node.value)
-                if isinstance(node.value, ast.Name):
-                    if node.value.id not in allowed_names:
-                        # Allow attributes on variables, which will be checked at runtime
-                        return
-                elif isinstance(node.value, ast.Constant):
-                    obj_type = type(node.value.value).__name__
-                    if obj_type == 'str':
-                        if node.attr not in allowed_attributes.get('str', []):
-                            raise AttributeError(f"Attribute '{node.attr}' is not allowed on str objects")
-                    elif obj_type not in allowed_names:
-                        raise AttributeError(f"Attributes on object type '{obj_type}' are not allowed")
-                else:
-                    raise AttributeError(f"Attributes on complex expressions are not allowed")
-
         # Visit the AST to ensure safety
         SafeVisitor().visit(tree)
 
-        # Prepare the namespace for execution
-        exec_globals = {'__builtins__': None}
-        exec_globals.update(allowed_names)
-        exec_locals = {}
-
-        # Capture output
-        old_stdout = sys.stdout
-        sys.stdout = io.StringIO()
-
-        try:
-            # Compile the AST
-            compiled_code = compile(tree, filename='<ast>', mode='exec')
-            # Execute the code
-            exec(compiled_code, exec_globals, exec_locals)
-            # Get the output
-            output = sys.stdout.getvalue()
-        finally:
-            sys.stdout = old_stdout
-
-        return json.dumps({
-            "code": code,
-            "output": output.strip()
-        })
+        # Execute the code with restricted built-ins
+        exec_globals = {'__builtins__': SAFE_BUILTINS}
+        exec(code, exec_globals)
     except Exception as e:
-        return json.dumps({
-            "code": code,
-            "output": f"Error: {str(e)}"
-        })
+        print(f"Error during safe execution: {e}")
 
-# Add this at the end of the file to automatically run the test when the module is imported
+def flexible_exec(code):
+    try:
+        exec(code)
+    except Exception as e:
+        print(f"Error during flexible execution: {e}")
+
+def execute_python_code(code):
+    try:
+        # Capture the output of the executed code
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            exec(code, {})
+        output = f.getvalue()
+        # If there's no output, provide a default success message
+        result = output.strip() if output else "Code executed successfully."
+    except Exception as e:
+        result = f"Error executing code: {str(e)}"
+    return result  # Return a simple string
+
+def toggle_execution_mode():
+    global SAFE_MODE
+    SAFE_MODE = not SAFE_MODE
+    print(f"Execution mode changed to: {'safe' if SAFE_MODE else 'flexible'}")
+
 if __name__ == "__main__":
-    print("Running built-in test:")
-    print(execute_python_code())
+    print("Current mode:", get_execution_mode())
+
+    test_code = """
+print("Hello, World!")
+result = 5 + 3
+print(f"5 + 3 = {result}")
+"""
+
+    print("\nExecuting test code:")
+    execute_python_code(test_code)
+
+    print("\nToggling mode...")
+    toggle_execution_mode()
+
+    print("\nExecuting test code again:")
+    execute_python_code(test_code)

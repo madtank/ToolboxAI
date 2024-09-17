@@ -164,38 +164,21 @@ def handle_content_block_delta(event, state, message_placeholder, thinking_place
 def process_text_delta(text_chunk, state, message_placeholder, thinking_placeholder):
     state['full_response'] += text_chunk
     
-    if '<thinking>' in text_chunk:
-        state['is_thinking'] = True
-        state['is_answering'] = False
-        state['thinking_content'] = ""
-    elif '</thinking>' in text_chunk:
-        state['is_thinking'] = False
-    elif '<answer>' in text_chunk:
-        state['is_thinking'] = False
-        state['is_answering'] = True
-        state['answer_content'] = ""
-    elif '</answer>' in text_chunk:
-        state['is_answering'] = False
+    # Instead of separating thinking and answering, just append all text to answer_content
+    state['answer_content'] += text_chunk
     
-    if state['is_thinking']:
-        state['thinking_content'] += text_chunk
-        clean_thinking = re.sub(r'<thinking>|</thinking>', '', state['thinking_content']).strip()
-        with thinking_placeholder.container():
-            st.markdown("### 🧠 Chain of Thought")
-            st.info(clean_thinking)
-    elif state['is_answering'] or not state['is_thinking']:
-        state['answer_content'] += text_chunk
-        state['clean_answer'] = re.sub(r'<answer>|</answer>', '', state['answer_content']).strip()
-        message_placeholder.markdown(state['clean_answer'])
-        logger.debug(f"Assistant response: {state['clean_answer']}")
+    # Display the full response, including tags
+    message_placeholder.markdown(state['full_response'])
+    logger.debug(f"Assistant response: {state['full_response']}")
+
+    # Optionally, you can keep a 'clean' version without tags for other purposes
+    state['clean_answer'] = re.sub(r'<thinking>|</thinking>|<answer>|</answer>', '', state['full_response']).strip()
 
 def handle_tool_use_stop(state, messages, tool_input_placeholder):
-    if state['clean_answer']:
-        state['assistant_message']["content"].append({"text": state['clean_answer']})
-        update_display_messages("assistant", state['clean_answer'])
-        logger.debug(f"Assistant message appended: {state['clean_answer']}")
-    
+    # Parse the tool input
     tool_input_json = parse_tool_input(state['full_tool_input'])
+    
+    # Append tool use information
     state['assistant_message']["content"].append({
         "toolUse": {
             "toolUseId": state['tool_id'],
@@ -203,10 +186,19 @@ def handle_tool_use_stop(state, messages, tool_input_placeholder):
             "input": tool_input_json
         }
     })
-    tool_input_placeholder.markdown(f"Tool input: {state['full_tool_input']}")
-
+    
+    # Get tool results
     tool_results = get_tool_results(state['tool_name'], tool_input_json)
-    display_tool_results(state['tool_name'], tool_results)
+    
+    # Display tool results
+    display_tool_results(state['tool_name'], tool_input_json, tool_results)
+
+    if state['full_response']:  # Changed from state['clean_answer']
+        state['assistant_message']["content"].append({"text": state['full_response']})  # Changed from state['clean_answer']
+        update_display_messages("assistant", state['full_response'])  # Changed from state['clean_answer']
+        logger.debug(f"Assistant message appended: {state['full_response']}")  # Changed from state['clean_answer']
+    
+    # tool_input_placeholder.markdown(f"Tool input: {state['full_tool_input']}")
 
     messages.append(state['assistant_message'])
     messages.append({
@@ -225,7 +217,6 @@ def handle_tool_use_stop(state, messages, tool_input_placeholder):
 
     update_display_messages("tool", f"Tool used: {state['tool_name']}", state['tool_name'], state['full_tool_input'], tool_results)
     logger.debug(f"Tool results processed: {tool_results}")
-
 def parse_tool_input(full_tool_input):
     if full_tool_input:
         try:
@@ -244,15 +235,26 @@ def get_tool_results(tool_name, tool_input):
         logger.error(f"Error decoding tool results JSON: {e}")
         return {"error": "Invalid tool results format"}
 
-def display_tool_results(tool_name, tool_results):
+def display_tool_results(tool_name, tool_input, tool_results):
     with st.expander(f"🔍 Tool Results: {tool_name}", expanded=False):
+        # Display tool input
+        st.subheader("Tool Input:")
+        st.json(tool_input)
+
+        # Display tool results
+        st.subheader("Tool Output:")
+        if isinstance(tool_results, str):
+            try:
+                tool_results = json.loads(tool_results)
+            except json.JSONDecodeError:
+                tool_results = {"result": tool_results}
+        
         if "error" in tool_results:
             st.error(tool_results["error"])
+        elif "result" in tool_results:
+            st.write(tool_results["result"])
         else:
-            if tool_name in ["save_memory", "recall_memories", "update_memory", "delete_memory", "get_user_profile", "list_all_memories"]:
-                st.markdown(format_memory_results(tool_results["result"]))
-            else:
-                st.json(tool_results["result"])
+            st.json(tool_results)
 
 def finalize_assistant_message(state, messages):
     if state['clean_answer']:

@@ -15,28 +15,12 @@ def new_chat():
         'totalTokens': 0
     }
 
-def handle_chat_output(delta, message_placeholder, full_response, answer_content, is_thinking):
-    text_chunk = delta['text']
-    full_response += text_chunk
-    
-    if '<thinking>' in text_chunk:
-        is_thinking = True
-        message_placeholder.markdown("Thinking...")
-    elif '</thinking>' in text_chunk:
-        is_thinking = False
-        message_placeholder.empty()
-    
-    if '<answer>' in text_chunk:
-        answer_start = full_response.rfind('<answer>') + 8
-        answer_content = full_response[answer_start:]
-    elif '</answer>' in text_chunk:
-        answer_end = full_response.rfind('</answer>')
-        answer_content = full_response[full_response.rfind('<answer>') + 8:answer_end]
-    
-    if not is_thinking:
-        message_placeholder.markdown(answer_content)
-    
-    return full_response, answer_content, is_thinking
+def handle_chat_output(delta, message_placeholder, full_response):
+    if 'text' in delta:
+        text_chunk = delta['text']
+        full_response += text_chunk
+        message_placeholder.markdown(full_response)
+    return full_response
 
 def handle_tool_use(delta, tool_input_placeholder, full_tool_input, is_final=True):
     if 'input' in delta['toolUse']:
